@@ -81,6 +81,8 @@ type Mutation {
 		@aws_auth(cognito_groups: ["active"])
 	putSettings(userid: String!, settings: AWSJSON!): String
 		@aws_auth(cognito_groups: ["active"])
+	createUser(username: String!, email: String!, isAdmin: Boolean!, point: Int!, effective_days: Int!): String
+		@aws_auth(cognito_groups: ["admin"])
 }
 
 type Query {
@@ -88,12 +90,12 @@ type Query {
 		@aws_auth(cognito_groups: ["active"])
 	getUsage(userid: String!): Usage
 		@aws_auth(cognito_groups: ["active"])
-	getPrivilegedUsers: [User]
-		@aws_auth(cognito_groups: ["admin"])
 	getChatIdList(userid: String!): [ChatMetadata]
 		@aws_auth(cognito_groups: ["active"])
 	getChatDetail(userid: String!, chatid: String!): Chat
 		@aws_auth(cognito_groups: ["active"])
 	getSettings(userid: String!): AWSJSON
 		@aws_auth(cognito_groups: ["active"])
+	getPrivilegedUsers: [User]
+		@aws_auth(cognito_groups: ["admin"])
 }

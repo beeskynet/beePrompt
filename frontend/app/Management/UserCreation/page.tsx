@@ -3,8 +3,13 @@
 import React, { useState } from "react";
 import { Typography, Button, Checkbox, Input } from "@material-tailwind/react";
 import { useRouter } from "next/navigation";
+import { fetchAuthSession } from "aws-amplify/auth";
+import { apiUrls } from "lib/environments";
 
 const UserCreationForm: React.FC = () => {
+  interface Dict<T> {
+    [key: string]: T;
+  }
   const router = useRouter();
   const [formState, setFormState] = useState({
     username: "",
@@ -14,6 +19,19 @@ const UserCreationForm: React.FC = () => {
     effectiveDays: 31,
   });
 
+  const fetchAppSync = async ({ query, variables }: { query: string; variables?: Dict<string | number> }) => {
+    const session = await fetchAuthSession();
+    const res = await fetch(apiUrls.appSync, {
+      method: "POST",
+      headers: session.tokens?.accessToken ? { Authorization: session.tokens.accessToken.toString() } : undefined,
+      body: JSON.stringify({ query, variables }),
+    });
+    const resJson = await res.json();
+    if (resJson.errors) {
+      console.error(resJson.errors[0].message, resJson.errors);
+    }
+    return resJson?.data;
+  };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormState((prevState) => ({
@@ -22,10 +40,17 @@ const UserCreationForm: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log(formState);
-    // バリデーションおよび送信処理をここで行う
+    const { username, email, isAdmin, initialPoints, effectiveDays } = formState;
+    const variables = { username, email, isAdmin, point: initialPoints, effective_days: effectiveDays };
+    const query = `
+      mutation($username:String!, $email:String!, $isAdmin: Boolean!, $point:Int!, $effective_days:Int!) {
+        createUser(username: $username, email: $email, isAdmin: $isAdmin, point: $point, effective_days: $effective_days)
+      }`;
+    const res = await fetchAppSync({ query, variables });
+    console.info(res);
   };
 
   const buttonStyle = "bg-blue-400 border border-blue-600 shadow-none font-normal text-white";

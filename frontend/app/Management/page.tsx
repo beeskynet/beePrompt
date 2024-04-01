@@ -116,7 +116,7 @@ function ManBalance() {
             <Button onClick={() => console.info("delete")} className={`${buttonStyle}`} disabled={!selected}>
               アクション：セレクトボックスにする
             </Button>
-            <Button onClick={() => console.info("create")} className={`${buttonStyle} ml-3`}>
+            <Button onClick={() => router.push("/Management/UserCreation")} className={`${buttonStyle} ml-3`}>
               作成
             </Button>
           </div>

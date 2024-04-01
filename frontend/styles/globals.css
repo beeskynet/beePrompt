@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+.markdown h1 { @apply mt-3 font-bold }
+.markdown h2 { @apply mt-3 font-bold }
+.markdown h3 { @apply mt-3 font-bold }
+.markdown h4 { @apply mt-3 font-bold }
+.markdown h5 { @apply mt-3 font-bold }
+.markdown h6 { @apply mt-3 font-bold }
+.markdown p { @apply leading-relaxed }
+.markdown ol { @apply list-decimal pl-6 }
+.markdown ul { @apply list-disc pl-6 }
+.markdown li { @apply p-1 leading-relaxed}

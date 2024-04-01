@@ -1,0 +1,99 @@
+scalar AWSJSON
+
+type Balance {
+	userid: String!
+	expiryDate: String!
+	balance: Float!
+	createdAt: String!
+	updatedAt: String!
+}
+
+type Chat {
+	dtype: String!
+	chat: [Message]!
+	updatedAt: String!
+	createdAt: String!
+	chatid: String!
+	userid: String!
+	title: String!
+}
+
+type ChatMetadata {
+	chatid: String!
+	title: String!
+	createdAt: String
+	updatedAt: String!
+}
+
+type Message {
+	role: String!
+	content: String
+	dtm: String!
+	model: String
+	done: String
+}
+
+input MessageInput {
+	role: String!
+	content: String
+	dtm: String!
+	model: String
+	done: String
+}
+
+type SmrDaily {
+	day: String!
+	usagePoint: Float!
+}
+
+type SmrMonthly {
+	month: String!
+	usagePoint: Float!
+}
+
+type Usage {
+	smrDaily: [SmrDaily]!
+	smrMonthly: [SmrMonthly]!
+}
+
+type User {
+	username: String!
+	sub: String!
+	email: String!
+	emailVerified: Boolean!
+	groups: [String]
+	userCreateDate: String!
+	userLastModifiedDate: String!
+}
+
+type Mutation {
+	putChat(
+		userid: String!,
+		chatid: String!,
+		messages: [MessageInput]!,
+		title: String,
+		sysMsg: String
+	): String
+		@aws_auth(cognito_groups: ["active"])
+	addBalance(userid: String!, point: Int!, effective_days: Int!): String
+		@aws_auth(cognito_groups: ["active"])
+	deleteChats(userid: String!, chatids: [String]!): String
+		@aws_auth(cognito_groups: ["active"])
+	putSettings(userid: String!, settings: AWSJSON!): String
+		@aws_auth(cognito_groups: ["active"])
+}
+
+type Query {
+	getBalances(userids: [String]!): [Balance]
+		@aws_auth(cognito_groups: ["active"])
+	getUsage(userid: String!): Usage
+		@aws_auth(cognito_groups: ["active"])
+	getPrivilegedUsers: [User]
+		@aws_auth(cognito_groups: ["admin"])
+	getChatIdList(userid: String!): [ChatMetadata]
+		@aws_auth(cognito_groups: ["active"])
+	getChatDetail(userid: String!, chatid: String!): Chat
+		@aws_auth(cognito_groups: ["active"])
+	getSettings(userid: String!): AWSJSON
+		@aws_auth(cognito_groups: ["active"])
+}

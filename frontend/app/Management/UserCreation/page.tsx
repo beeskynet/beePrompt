@@ -11,13 +11,16 @@ const UserCreationForm: React.FC = () => {
     [key: string]: T;
   }
   const router = useRouter();
-  const [formState, setFormState] = useState({
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState(false);
+  const initialFormState = {
     username: "",
     email: "",
     isAdmin: false,
     initialPoints: 0,
     effectiveDays: 31,
-  });
+  };
+  const [formState, setFormState] = useState(initialFormState);
 
   const fetchAppSync = async ({ query, variables }: { query: string; variables?: Dict<string | number | boolean> }) => {
     const session = await fetchAuthSession();
@@ -42,7 +45,6 @@ const UserCreationForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(formState);
     const { username, email, isAdmin, initialPoints, effectiveDays } = formState;
     const variables = { username, email, isAdmin, point: initialPoints, effective_days: effectiveDays };
     const query = `
@@ -50,12 +52,18 @@ const UserCreationForm: React.FC = () => {
         createUser(username: $username, email: $email, isAdmin: $isAdmin, point: $point, effective_days: $effective_days)
       }`;
     const res = await fetchAppSync({ query, variables });
-    if (res?.createUser !== "Success") {
+    if (res?.createUser === "Success") {
+      setMessage("ユーザーを作成しました。");
+      setError(false);
+      setFormState(initialFormState);
+    } else {
       if (res?.createUser === "UsernameExistsException") {
-        alert("ユーザーがすでに存在します。");
+        setMessage("ユーザーがすでに存在します。");
+        setError(true);
       } else {
         console.error(res);
-        alert("ユーザーの作成に失敗しました。");
+        setMessage("ユーザーの作成に失敗しました。");
+        setError(true);
       }
     }
   };
@@ -64,7 +72,8 @@ const UserCreationForm: React.FC = () => {
   return (
     <div className="flex justify-center">
       <div className="flex flex-col max-h-screen" style={{ width: 500 }}>
-        <div className="my-3 font-bold">User Creation</div>
+        <div className="mt-3 font-bold">User Creation</div>
+        <div className={`m-3 ${error ? "text-red-600" : "text-green-600"}`}>{message}</div>
         <form onSubmit={handleSubmit} className="max-w-xl">
           <div className="mb-4 mx-2">
             <Input

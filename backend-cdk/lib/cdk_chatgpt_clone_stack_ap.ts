@@ -83,6 +83,11 @@ export class CdkChatgptCloneStackAP extends Stack {
     );
 
     //===================================== iam ロール作成 =====================================
+    const logsActions = [
+      'logs:CreateLogGroup',
+      'logs:CreateLogStream',
+      'logs:PutLogEvents',
+    ];
     const dynamodbFullAccessRole = new aws_iam.Role(
       this,
       'dynamodbAccessRole',
@@ -94,14 +99,9 @@ export class CdkChatgptCloneStackAP extends Stack {
     dynamodbFullAccessRole.addToPolicy(
       new aws_iam.PolicyStatement({
         resources: ['*'],
-        actions: [
-          'logs:CreateLogGroup',
-          'logs:CreateLogStream',
-          'logs:PutLogEvents',
-        ],
+        actions: logsActions,
       })
     );
-
     dynamodbFullAccessRole.addManagedPolicy(
       ManagedPolicy.fromAwsManagedPolicyName('AmazonDynamoDBFullAccess')
     );
@@ -113,14 +113,9 @@ export class CdkChatgptCloneStackAP extends Stack {
     dynamodbReadRole.addToPolicy(
       new aws_iam.PolicyStatement({
         resources: ['*'],
-        actions: [
-          'logs:CreateLogGroup',
-          'logs:CreateLogStream',
-          'logs:PutLogEvents',
-        ],
+        actions: logsActions,
       })
     );
-
     dynamodbReadRole.addManagedPolicy(
       ManagedPolicy.fromAwsManagedPolicyName('AmazonDynamoDBReadOnlyAccess')
     );
@@ -132,16 +127,32 @@ export class CdkChatgptCloneStackAP extends Stack {
     cognitoReadRole.addToPolicy(
       new aws_iam.PolicyStatement({
         resources: ['*'],
-        actions: [
-          'logs:CreateLogGroup',
-          'logs:CreateLogStream',
-          'logs:PutLogEvents',
-        ],
+        actions: logsActions,
       })
     );
-
     cognitoReadRole.addManagedPolicy(
       ManagedPolicy.fromAwsManagedPolicyName('AmazonCognitoReadOnly')
+    );
+
+    const cognitoFullAccessRole = new aws_iam.Role(
+      this,
+      'cognitoFullAccessRole',
+      {
+        roleName: `${props.stackName}-cognito-full-access`,
+        assumedBy: new aws_iam.ServicePrincipal('lambda.amazonaws.com'),
+      }
+    );
+    cognitoFullAccessRole.addToPolicy(
+      new aws_iam.PolicyStatement({
+        resources: ['*'],
+        actions: logsActions,
+      })
+    );
+    cognitoFullAccessRole.addManagedPolicy(
+      ManagedPolicy.fromAwsManagedPolicyName('AmazonCognitoPowerUser')
+    );
+    cognitoFullAccessRole.addManagedPolicy(
+      ManagedPolicy.fromAwsManagedPolicyName('AmazonDynamoDBFullAccess')
     );
 
     const MainLamdaRole = new aws_iam.Role(this, 'dynamodbFullAccessRole', {
@@ -160,11 +171,7 @@ export class CdkChatgptCloneStackAP extends Stack {
     MainLamdaRole.addToPolicy(
       new aws_iam.PolicyStatement({
         resources: ['*'],
-        actions: [
-          'logs:CreateLogGroup',
-          'logs:CreateLogStream',
-          'logs:PutLogEvents',
-        ],
+        actions: logsActions,
       })
     );
 
@@ -286,17 +293,14 @@ export class CdkChatgptCloneStackAP extends Stack {
         environment,
         role: cognitoReadRole,
       },
-      // WebSocket API
-      /*
       {
-        name: 'gpt-websock',
-        dir: 'websocket',
-        layers: [openaiLayer, pytzLayer, pyjwtLayer, commonLayer],
+        name: 'create-user',
+        dir: 'appsync',
+        appSyncRelolver: { typeName: 'Mutation', fieldName: 'createUser' },
+        layers: [pytzLayer, commonLayer],
         environment,
-        role: MainLamdaRole,
-        websock: true,
+        role: cognitoFullAccessRole,
       },
-       */
       {
         name: 'websock',
         dir: 'websocket',

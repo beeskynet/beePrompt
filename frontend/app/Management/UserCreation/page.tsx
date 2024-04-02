@@ -19,7 +19,7 @@ const UserCreationForm: React.FC = () => {
     effectiveDays: 31,
   });
 
-  const fetchAppSync = async ({ query, variables }: { query: string; variables?: Dict<string | number> }) => {
+  const fetchAppSync = async ({ query, variables }: { query: string; variables?: Dict<string | number | boolean> }) => {
     const session = await fetchAuthSession();
     const res = await fetch(apiUrls.appSync, {
       method: "POST",
@@ -50,7 +50,14 @@ const UserCreationForm: React.FC = () => {
         createUser(username: $username, email: $email, isAdmin: $isAdmin, point: $point, effective_days: $effective_days)
       }`;
     const res = await fetchAppSync({ query, variables });
-    console.info(res);
+    if (res?.createUser !== "Success") {
+      if (res?.createUser === "UsernameExistsException") {
+        alert("ユーザーがすでに存在します。");
+      } else {
+        console.error(res);
+        alert("ユーザーの作成に失敗しました。");
+      }
+    }
   };
 
   const buttonStyle = "bg-blue-400 border border-blue-600 shadow-none font-normal text-white";
@@ -102,17 +109,17 @@ const UserCreationForm: React.FC = () => {
             </Button>
           </div>
         </form>
-        {/* チャットページリンク */}
+        {/* 管理ページリンク */}
         <Typography as="li" color="blue-gray" className="font-normal my-2">
           <a
             href="#"
             onClick={(e) => {
               e.preventDefault();
-              router.push("/");
+              router.push("/Management");
             }}
             className="inline-block py-1 pr-2 transition-transform hover:scale-105"
           >
-            To Chat Page.
+            To Management Page.
           </a>
         </Typography>
       </div>

@@ -151,6 +151,9 @@ export class CdkChatgptCloneStackAP extends Stack {
     cognitoFullAccessRole.addManagedPolicy(
       ManagedPolicy.fromAwsManagedPolicyName('AmazonCognitoPowerUser')
     );
+    cognitoFullAccessRole.addManagedPolicy(
+      ManagedPolicy.fromAwsManagedPolicyName('AmazonDynamoDBFullAccess')
+    );
 
     const MainLamdaRole = new aws_iam.Role(this, 'dynamodbFullAccessRole', {
       roleName: `${props.stackName}-main-lambda`,

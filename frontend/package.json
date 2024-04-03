@@ -10,7 +10,8 @@
   "dependencies": {
     "@aws-amplify/ui-react": "^6.0.3",
     "@aws-sdk/client-secrets-manager": "^3.431.0",
-    "@material-tailwind/react": "^2.1.5",
+    "@material-tailwind/react": "^2.1.9",
+    "@types/react": "^18.2.9",
     "aws-amplify": "^6.0.5",
     "aws-sdk": "^2.1476.0",
     "jotai": "^2.6.0",

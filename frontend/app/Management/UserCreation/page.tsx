@@ -77,7 +77,6 @@ const UserCreationForm: React.FC = () => {
         <form onSubmit={handleSubmit} className="max-w-xl">
           <div className="mb-4 mx-2">
             <Input
-              crossOrigin=""
               type="text"
               name="username"
               label="UserID"
@@ -88,7 +87,6 @@ const UserCreationForm: React.FC = () => {
           </div>
           <div className="mb-4 mx-2">
             <Input
-              crossOrigin=""
               type="email"
               name="email"
               label="Email"
@@ -99,7 +97,7 @@ const UserCreationForm: React.FC = () => {
           </div>
           <div className="mb-4">
             <label className="flex items-center">
-              <Checkbox crossOrigin="" name="isAdmin" checked={formState.isAdmin} onChange={handleChange} className="p-1" color="indigo" />
+              <Checkbox name="isAdmin" checked={formState.isAdmin} onChange={handleChange} className="p-1" color="indigo" />
               <span className="cursor-pointer select-none">管理者</span>
             </label>
           </div>
@@ -107,8 +105,8 @@ const UserCreationForm: React.FC = () => {
           <div className="flex flex-row gap-2 my-5 mx-2">
             <div className="mt-auto w-full">
               <div className="flex flex-row gap-x-2">
-                <Input crossOrigin="" name="initialPoints" label="ポイント" value={formState.initialPoints} onChange={handleChange} />
-                <Input crossOrigin="" name="effectiveDays" label="有効日数" value={formState.effectiveDays} onChange={handleChange} />
+                <Input name="initialPoints" label="ポイント" value={formState.initialPoints} onChange={handleChange} />
+                <Input name="effectiveDays" label="有効日数" value={formState.effectiveDays} onChange={handleChange} />
               </div>
             </div>
           </div>

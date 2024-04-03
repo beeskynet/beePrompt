@@ -73,7 +73,6 @@ function SettingsDrawer() {
       </div>
       <label className="flex">
         <Checkbox
-          crossOrigin=""
           className="p-1"
           color="indigo"
           checked={settings.appSettings.copyChatOnMessageDeleteMode}

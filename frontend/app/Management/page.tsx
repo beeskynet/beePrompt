@@ -140,7 +140,6 @@ function ManBalance() {
               <React.Fragment key={`d-${i}`}>
                 <div className="border border-gray-200 -mb-px -mr-px">
                   <Radio
-                    crossOrigin=""
                     id={`user${i}`}
                     label={user.username}
                     type="radio"
@@ -160,8 +159,8 @@ function ManBalance() {
         <div className="flex flex-row gap-2 mt-5">
           <div className="mt-auto">
             <div className="flex flex-row">
-              <Input crossOrigin="" label="ポイント" value={point} onChange={onChangePointInput} />
-              <Input crossOrigin="" label="有効日数" value={effectiveDays} onChange={onChangeEffectiveDaysInput} />
+              <Input label="ポイント" value={point} onChange={onChangePointInput} />
+              <Input label="有効日数" value={effectiveDays} onChange={onChangeEffectiveDaysInput} />
             </div>
           </div>
           <Button onClick={onSubmit} className={`${buttonStyle}`} disabled={!selected}>

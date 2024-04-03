@@ -75,7 +75,7 @@ type Mutation {
 		sysMsg: String
 	): String
 		@aws_auth(cognito_groups: ["active"])
-	addBalance(userid: String!, point: Int!, effective_days: Int!): String
+	addBalance(userids: [String]!, point: Int!, effective_days: Int!): String
 		@aws_auth(cognito_groups: ["active"])
 	deleteChats(userid: String!, chatids: [String]!): String
 		@aws_auth(cognito_groups: ["active"])

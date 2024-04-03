@@ -1,15 +1,17 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Input, Radio, Button } from "@material-tailwind/react";
+import { Input, Radio, Button, Checkbox } from "@material-tailwind/react";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { apiUrls } from "lib/environments";
 import { Typography } from "@material-tailwind/react";
 import { useRouter } from "next/navigation";
 
 function ManBalance() {
-  const [userid, setUserid] = useState<string | undefined>();
-  const [users, setUsers] = useState([]);
-  const [selected, setSelected] = useState<string | undefined>();
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState(false);
+  const [, setUserid] = useState<string | undefined>();
+  const [users, setUsers] = useState<User[]>([]);
+  const [checked, setChecked] = useState<Dict<boolean>>({});
   const [point, setPoint] = useState(500);
   const [effectiveDays, setEffectiveDays] = useState(31);
   const router = useRouter();
@@ -19,9 +21,9 @@ function ManBalance() {
   interface User {
     sub: string;
     username: string;
-    balance: number;
+    balance?: number;
   }
-  const fetchAppSync = async ({ query, variables }: { query: string; variables?: Dict<string | number> }) => {
+  const fetchAppSync = async ({ query, variables }: { query: string; variables?: Dict<string | number | string[]> }) => {
     const session = await fetchAuthSession();
     const res = await fetch(apiUrls.appSync, {
       method: "POST",
@@ -50,7 +52,7 @@ function ManBalance() {
           }`;
       const res = await fetchAppSync({ query });
       const gotUsers = res.getPrivilegedUsers;
-      const userids = gotUsers.map((user: Dict<string>) => user.sub);
+      const userids = gotUsers.map((user: User) => user.sub);
       const variables = { userids };
       const getBalances = async () => {
         const query = `
@@ -65,10 +67,9 @@ function ManBalance() {
           dic[balance.userid] = balance.userid in dic ? dic[balance.userid] + balance.balance : balance.balance;
           return dic;
         }, {});
-        setUsers(gotUsers.map((user: Dict<string>) => ({ ...user, balance: balances[user.sub] })));
+        setUsers(gotUsers.map((user: User) => ({ ...user, balance: balances[user.sub] })));
       };
       getBalances();
-      await fetchAppSync({ query, variables });
     };
     getPrivilegedUsers();
   };
@@ -76,9 +77,8 @@ function ManBalance() {
     init();
   }, []);
 
-  const selectUser = (user: User) => () => {
-    //console.info(user.sub);
-    setSelected(user.sub);
+  const checkUser = (user: User) => () => {
+    setChecked({ ...checked, [user.sub]: !checked[user.sub] });
   };
   const onChangePointInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.target.value = e.target.value.replace(/(?!^-)[^0-9]/g, ""); // 文頭のマイナスは許す
@@ -90,16 +90,23 @@ function ManBalance() {
     const newValue = parseInt(e.target.value);
     setEffectiveDays(!isNaN(newValue) ? newValue : effectiveDays);
   };
+  const checkedIds = Object.keys(checked).filter((userid) => checked[userid]);
   const onSubmit = async () => {
-    if (!selected) return;
+    if (checkedIds.length < 1) return;
     const query = `
-      mutation($userid:String!, $point:Int!, $effective_days:Int!) {
-        addBalance(userid: $userid, point: $point, effective_days: $effective_days)
+      mutation($userids:[String]!, $point:Int!, $effective_days:Int!) {
+        addBalance(userids: $userids, point: $point, effective_days: $effective_days)
       }`;
-    const variables = { userid: selected, point, effective_days: effectiveDays };
+    const variables = { userids: checkedIds, point, effective_days: effectiveDays };
     const res = await fetchAppSync({ query, variables });
     if (res.addBalance === "Success") {
+      setMessage("ポイント付与しました。");
+      setError(false);
       await init();
+    } else {
+      setMessage("ポイント付与に失敗しました。");
+      setError(true);
+      console.error(res.addBalance);
     }
   };
   const columns = ["username", "balance"];
@@ -110,17 +117,17 @@ function ManBalance() {
     <div className="flex justify-center">
       <div className="flex flex-col max-h-screen">
         <div className="flex justify-between m-1">
-          <div className="my-2">ユーザー</div>
-          <div />
+          <div className="mt-2">ユーザー</div>
           <div>
-            <Button onClick={() => console.info("delete")} className={`${buttonStyle}`} disabled={!selected}>
-              アクション：セレクトボックスにする
+            <Button onClick={() => console.info("delete")} className={`${buttonStyle}`} disabled={checkedIds.length < 1}>
+              削除
             </Button>
             <Button onClick={() => router.push("/Management/UserCreation")} className={`${buttonStyle} ml-3`}>
               作成
             </Button>
           </div>
         </div>
+        <div className={`mb-2 ${error ? "text-red-600" : "text-green-600"}`}>{message}</div>
 
         {/* ヘッダー */}
         <div className="" style={{ width: 480 }}>
@@ -139,14 +146,7 @@ function ManBalance() {
             {users.map((user: User, i: number) => (
               <React.Fragment key={`d-${i}`}>
                 <div className="border border-gray-200 -mb-px -mr-px">
-                  <Radio
-                    id={`user${i}`}
-                    label={user.username}
-                    type="radio"
-                    name="radio"
-                    checked={selected === user.sub}
-                    onChange={selectUser(user)}
-                  />
+                  <Checkbox color="indigo" id={`user${i}`} label={user.username} checked={!!checked[user.sub]} onChange={checkUser(user)} />
                 </div>
                 <div className="border border-gray-200 flex items-center justify-end pr-3 -mb-px -mr-2px">
                   {user.balance ? Number(user.balance).toFixed(2) : ""}
@@ -163,7 +163,7 @@ function ManBalance() {
               <Input label="有効日数" value={effectiveDays} onChange={onChangeEffectiveDaysInput} />
             </div>
           </div>
-          <Button onClick={onSubmit} className={`${buttonStyle}`} disabled={!selected}>
+          <Button onClick={onSubmit} className={`${buttonStyle}`} disabled={checkedIds.length < 1}>
             付与
           </Button>
         </div>

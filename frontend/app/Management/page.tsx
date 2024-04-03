@@ -12,8 +12,8 @@ function ManBalance() {
   const [, setUserid] = useState<string | undefined>();
   const [users, setUsers] = useState<User[]>([]);
   const [checked, setChecked] = useState<Dict<boolean>>({});
-  const [point, setPoint] = useState(500);
-  const [effectiveDays, setEffectiveDays] = useState(31);
+  const [point, setPoint] = useState<number | string>(500);
+  const [effectiveDays, setEffectiveDays] = useState<number | "">(31);
   const router = useRouter();
   interface Dict<T> {
     [key: string]: T;
@@ -81,18 +81,19 @@ function ManBalance() {
     setChecked({ ...checked, [user.sub]: !checked[user.sub] });
   };
   const onChangePointInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.target.value = e.target.value.replace(/(?!^-)[^0-9]/g, ""); // 文頭のマイナスは許す
-    const newValue = parseInt(e.target.value);
-    setPoint(!isNaN(newValue) ? newValue : point);
+    const str = e.target.value.replace(/(?!^-)[^0-9]/g, ""); // 文頭のマイナスは許す
+    const num = parseInt(str);
+    setPoint(["", "-"].includes(str) ? str : num);
   };
   const onChangeEffectiveDaysInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.target.value = e.target.value.replace(/[^0-9]/g, "");
-    const newValue = parseInt(e.target.value);
-    setEffectiveDays(!isNaN(newValue) ? newValue : effectiveDays);
+    const str = e.target.value.replace(/[^0-9]/g, "");
+    const num = parseInt(str);
+    setEffectiveDays(str === "" ? str : num);
   };
   const checkedIds = Object.keys(checked).filter((userid) => checked[userid]);
   const onSubmit = async () => {
     if (checkedIds.length < 1) return;
+    if (typeof point !== "number" || typeof effectiveDays !== "number") return;
     const query = `
       mutation($userids:[String]!, $point:Int!, $effective_days:Int!) {
         addBalance(userids: $userids, point: $point, effective_days: $effective_days)
@@ -122,12 +123,27 @@ function ManBalance() {
             <Button onClick={() => console.info("delete")} className={`${buttonStyle}`} disabled={checkedIds.length < 1}>
               削除
             </Button>
-            <Button onClick={() => router.push("/Management/UserCreation")} className={`${buttonStyle} ml-3`}>
+            <Button onClick={() => router.push("/Management/UserCreation")} className={`${buttonStyle} ml-1`}>
               作成
             </Button>
           </div>
         </div>
-        <div className={`mb-2 ${error ? "text-red-600" : "text-green-600"}`}>{message}</div>
+
+        {/* ポイント付与 */}
+        <div className="flex flex-row gap-1 mr-1">
+          <div className="mt-auto">
+            <div className="flex flex-row gap-1">
+              <Input label="ポイント" value={point} onChange={onChangePointInput} />
+              <Input label="有効日数" value={effectiveDays} onChange={onChangeEffectiveDaysInput} />
+            </div>
+          </div>
+          <Button onClick={onSubmit} className={`${buttonStyle}`} disabled={checkedIds.length < 1}>
+            付与
+          </Button>
+        </div>
+
+        {/* 処理結果メッセージ */}
+        <div className={`my-2 ${error ? "text-red-600" : "text-green-600"}`}>{message}</div>
 
         {/* ヘッダー */}
         <div className="" style={{ width: 480 }}>
@@ -154,18 +170,6 @@ function ManBalance() {
               </React.Fragment>
             ))}
           </div>
-        </div>
-
-        <div className="flex flex-row gap-2 mt-5">
-          <div className="mt-auto">
-            <div className="flex flex-row">
-              <Input label="ポイント" value={point} onChange={onChangePointInput} />
-              <Input label="有効日数" value={effectiveDays} onChange={onChangeEffectiveDaysInput} />
-            </div>
-          </div>
-          <Button onClick={onSubmit} className={`${buttonStyle}`} disabled={checkedIds.length < 1}>
-            付与
-          </Button>
         </div>
 
         {/* チャットページリンク */}

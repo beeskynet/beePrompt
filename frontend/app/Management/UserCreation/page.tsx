@@ -10,6 +10,13 @@ const UserCreationForm: React.FC = () => {
   interface Dict<T> {
     [key: string]: T;
   }
+  interface FormState {
+    username: string;
+    email: string;
+    isAdmin: boolean;
+    point: number | "";
+    effectiveDays: number | "";
+  }
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
@@ -17,10 +24,10 @@ const UserCreationForm: React.FC = () => {
     username: "",
     email: "",
     isAdmin: false,
-    initialPoints: 0,
+    point: 0,
     effectiveDays: 31,
   };
-  const [formState, setFormState] = useState(initialFormState);
+  const [formState, setFormState] = useState<FormState>(initialFormState);
 
   const fetchAppSync = async ({ query, variables }: { query: string; variables?: Dict<string | number | boolean> }) => {
     const session = await fetchAuthSession();
@@ -35,6 +42,7 @@ const UserCreationForm: React.FC = () => {
     }
     return resJson?.data;
   };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormState((prevState) => ({
@@ -42,11 +50,21 @@ const UserCreationForm: React.FC = () => {
       [name]: type === "checkbox" ? checked : value,
     }));
   };
+  const handleChangeNumberInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const str = value.replace(/[^0-9]/g, "");
+    const num = parseInt(str);
+    setFormState((prevState) => ({
+      ...prevState,
+      [name]: str === "" ? str : num,
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { username, email, isAdmin, initialPoints, effectiveDays } = formState;
-    const variables = { username, email, isAdmin, point: initialPoints, effective_days: effectiveDays };
+    setMessage("");
+    const { username, email, isAdmin, point, effectiveDays } = formState;
+    const variables = { username, email, isAdmin, point: point ? point : 0, effective_days: effectiveDays ? effectiveDays : 0 };
     const query = `
       mutation($username:String!, $email:String!, $isAdmin: Boolean!, $point:Int!, $effective_days:Int!) {
         createUser(username: $username, email: $email, isAdmin: $isAdmin, point: $point, effective_days: $effective_days)
@@ -71,12 +89,13 @@ const UserCreationForm: React.FC = () => {
   const buttonStyle = "bg-blue-400 border border-blue-600 shadow-none font-normal text-white";
   return (
     <div className="flex justify-center">
-      <div className="flex flex-col max-h-screen" style={{ width: 500 }}>
-        <div className="mt-3 font-bold">User Creation</div>
+      <div className="flex flex-col" style={{ width: 500 }}>
+        <div className="ml-3 mt-3 font-bold">ユーザー作成</div>
         <div className={`m-3 ${error ? "text-red-600" : "text-green-600"}`}>{message}</div>
         <form onSubmit={handleSubmit} className="max-w-xl">
           <div className="mb-4 mx-2">
             <Input
+              required
               type="text"
               name="username"
               label="UserID"
@@ -87,6 +106,7 @@ const UserCreationForm: React.FC = () => {
           </div>
           <div className="mb-4 mx-2">
             <Input
+              required
               type="email"
               name="email"
               label="Email"
@@ -105,8 +125,8 @@ const UserCreationForm: React.FC = () => {
           <div className="flex flex-row gap-2 my-5 mx-2">
             <div className="mt-auto w-full">
               <div className="flex flex-row gap-x-2">
-                <Input name="initialPoints" label="ポイント" value={formState.initialPoints} onChange={handleChange} />
-                <Input name="effectiveDays" label="有効日数" value={formState.effectiveDays} onChange={handleChange} />
+                <Input name="point" label="ポイント" value={formState.point} onChange={handleChangeNumberInput} />
+                <Input name="effectiveDays" label="有効日数" value={formState.effectiveDays} onChange={handleChangeNumberInput} />
               </div>
             </div>
           </div>

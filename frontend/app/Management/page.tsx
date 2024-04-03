@@ -118,7 +118,7 @@ function ManBalance() {
     <div className="flex justify-center">
       <div className="flex flex-col max-h-screen">
         <div className="flex justify-between m-1">
-          <div className="mt-2">ユーザー</div>
+          <div className="mt-2 font-bold">ユーザーリスト</div>
           <div>
             <Button onClick={() => console.info("delete")} className={`${buttonStyle}`} disabled={checkedIds.length < 1}>
               削除

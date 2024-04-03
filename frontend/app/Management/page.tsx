@@ -7,9 +7,10 @@ import { Typography } from "@material-tailwind/react";
 import { useRouter } from "next/navigation";
 
 function ManBalance() {
-  const [userid, setUserid] = useState<string | undefined>();
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState(false);
+  const [, setUserid] = useState<string | undefined>();
   const [users, setUsers] = useState<User[]>([]);
-  const [selected, setSelected] = useState<string | undefined>();
   const [checked, setChecked] = useState<Dict<boolean>>({});
   const [point, setPoint] = useState(500);
   const [effectiveDays, setEffectiveDays] = useState(31);
@@ -51,7 +52,6 @@ function ManBalance() {
           }`;
       const res = await fetchAppSync({ query });
       const gotUsers = res.getPrivilegedUsers;
-      //const gotUsers = [{ username: "yayamura", sub: userid ? userid : "" }]; // TODO: あとで消す
       const userids = gotUsers.map((user: User) => user.sub);
       const variables = { userids };
       const getBalances = async () => {
@@ -100,8 +100,12 @@ function ManBalance() {
     const variables = { userids: checkedIds, point, effective_days: effectiveDays };
     const res = await fetchAppSync({ query, variables });
     if (res.addBalance === "Success") {
+      setMessage("ポイント付与しました。");
+      setError(false);
       await init();
     } else {
+      setMessage("ポイント付与に失敗しました。");
+      setError(true);
       console.error(res.addBalance);
     }
   };
@@ -113,17 +117,17 @@ function ManBalance() {
     <div className="flex justify-center">
       <div className="flex flex-col max-h-screen">
         <div className="flex justify-between m-1">
-          <div className="my-2">ユーザー</div>
-          <div />
+          <div className="mt-2">ユーザー</div>
           <div>
             <Button onClick={() => console.info("delete")} className={`${buttonStyle}`} disabled={checkedIds.length < 1}>
-              アクション：セレクトボックスにする
+              削除
             </Button>
             <Button onClick={() => router.push("/Management/UserCreation")} className={`${buttonStyle} ml-3`}>
               作成
             </Button>
           </div>
         </div>
+        <div className={`mb-2 ${error ? "text-red-600" : "text-green-600"}`}>{message}</div>
 
         {/* ヘッダー */}
         <div className="" style={{ width: 480 }}>

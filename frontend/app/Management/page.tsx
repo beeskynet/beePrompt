@@ -116,8 +116,9 @@ function ManBalance() {
   const getOnDelete = () => {
     let onProcessing = false;
     const onDelete = async () => {
-      if (onProcessing) return;
+      setOpen(false);
       setMessage("");
+      if (onProcessing) return;
       onProcessing = true;
 
       if (checkedIds().length < 1) return;
@@ -140,7 +141,6 @@ function ManBalance() {
         console.error(res.deleteUsers);
       }
       onProcessing = false;
-      setOpen(false);
     };
     return onDelete;
   };

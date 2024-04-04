@@ -27,17 +27,16 @@ def lambda_handler(event, context):
         start_day = str(datetime.now(timezone("Asia/Tokyo")) - timedelta(days=30 * 7))[:10]
         options = {}
         items = []
-        first, cont = True, None
-        while first or cont:
+        done = False
+
+        while not done:
             response = table.query(
                 KeyConditionExpression=Key("pk").eq("usage#%s" % userid) & Key("sk").gte(start_day), **options
             )
-            items = items + [item for item in response["Items"]]
+            items.extend(response["Items"])
             # 次ループ準備
-            first = False
-            cont = "LastEvaluatedKey" in response
-            if cont:
-                options["ExclusiveStartKey"] = response["LastEvaluatedKey"]
+            done = "LastEvaluatedKey" not in response
+            options["ExclusiveStartKey"] = response.get("LastEvaluatedKey")
         return items
 
     data = get_usage(userid)

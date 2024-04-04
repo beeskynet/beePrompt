@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Input, Radio, Button, Checkbox } from "@material-tailwind/react";
+import { Input, Button, Checkbox, Dialog, DialogHeader, DialogBody, DialogFooter } from "@material-tailwind/react";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { apiUrls } from "lib/environments";
 import { Typography } from "@material-tailwind/react";
@@ -14,6 +14,8 @@ function ManBalance() {
   const [checked, setChecked] = useState<Dict<boolean>>({});
   const [point, setPoint] = useState<number | string>(500);
   const [effectiveDays, setEffectiveDays] = useState<number | "">(31);
+  const [open, setOpen] = React.useState(false);
+  const confirmDeletion = () => setOpen(true);
   const router = useRouter();
   interface Dict<T> {
     [key: string]: T;
@@ -90,15 +92,16 @@ function ManBalance() {
     const num = parseInt(str);
     setEffectiveDays(str === "" ? str : num);
   };
-  const checkedIds = Object.keys(checked).filter((userid) => checked[userid]);
+  const checkedIds = () => Object.keys(checked).filter((userid) => checked[userid]);
   const onSubmit = async () => {
-    if (checkedIds.length < 1) return;
+    if (checkedIds().length < 1) return;
+    setChecked({});
     if (typeof point !== "number" || typeof effectiveDays !== "number") return;
     const query = `
       mutation($userids:[String]!, $point:Int!, $effective_days:Int!) {
         addBalance(userids: $userids, point: $point, effective_days: $effective_days)
       }`;
-    const variables = { userids: checkedIds, point, effective_days: effectiveDays };
+    const variables = { userids: checkedIds(), point, effective_days: effectiveDays };
     const res = await fetchAppSync({ query, variables });
     if (res.addBalance === "Success") {
       setMessage("ポイント付与しました。");
@@ -110,6 +113,38 @@ function ManBalance() {
       console.error(res.addBalance);
     }
   };
+  const getOnDelete = () => {
+    let onProcessing = false;
+    const onDelete = async () => {
+      if (onProcessing) return;
+      setMessage("");
+      onProcessing = true;
+
+      if (checkedIds().length < 1) return;
+      const idsForDelete = checkedIds();
+      setChecked({});
+      const query = `
+        mutation($usernames:[String]!) {
+          deleteUsers(usernames: $usernames)
+        }`;
+      const variables = { usernames: users.filter((user) => idsForDelete.includes(user.sub)).map((user) => user.username) };
+      const res = await fetchAppSync({ query, variables });
+      if (res.deleteUsers === "Success") {
+        setMessage("ユーザーを削除しました。");
+        setError(false);
+        setUsers(users.filter((user) => !idsForDelete.includes(user.sub)));
+        await init();
+      } else {
+        setMessage("ユーザー削除に失敗しました。");
+        setError(true);
+        console.error(res.deleteUsers);
+      }
+      onProcessing = false;
+      setOpen(false);
+    };
+    return onDelete;
+  };
+
   const columns = ["username", "balance"];
   const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 
@@ -120,7 +155,7 @@ function ManBalance() {
         <div className="flex justify-between m-1">
           <div className="mt-2 font-bold">ユーザーリスト</div>
           <div>
-            <Button onClick={() => console.info("delete")} className={`${buttonStyle}`} disabled={checkedIds.length < 1}>
+            <Button onClick={confirmDeletion} className={`${buttonStyle}`} disabled={checkedIds().length < 1}>
               削除
             </Button>
             <Button onClick={() => router.push("/Management/UserCreation")} className={`${buttonStyle} ml-1`}>
@@ -137,13 +172,15 @@ function ManBalance() {
               <Input label="有効日数" value={effectiveDays} onChange={onChangeEffectiveDaysInput} />
             </div>
           </div>
-          <Button onClick={onSubmit} className={`${buttonStyle}`} disabled={checkedIds.length < 1}>
+          <Button onClick={onSubmit} className={`${buttonStyle}`} disabled={checkedIds().length < 1}>
             付与
           </Button>
         </div>
 
         {/* 処理結果メッセージ */}
-        <div className={`my-2 ${error ? "text-red-600" : "text-green-600"}`}>{message}</div>
+        <div className={`my-2 ${error ? "text-red-600" : "text-green-600"}`} style={{ height: 28 }}>
+          {message}
+        </div>
 
         {/* ヘッダー */}
         <div className="" style={{ width: 480 }}>
@@ -186,6 +223,25 @@ function ManBalance() {
           </a>
         </Typography>
       </div>
+
+      {/* ユーザー削除確認ダイアログ */}
+      <Dialog open={open} handler={() => setOpen(false)}>
+        <DialogHeader>下記ユーザーを削除します</DialogHeader>
+        <DialogBody>
+          {users
+            .filter((user) => checkedIds().includes(user.sub))
+            .map((user) => user.username)
+            .join(", ")}
+        </DialogBody>
+        <DialogFooter>
+          <Button variant="text" color="red" onClick={() => setOpen(false)} className="mr-1">
+            <span>Cancel</span>
+          </Button>
+          <Button variant="gradient" color="green" onClick={getOnDelete()}>
+            <span>OK</span>
+          </Button>
+        </DialogFooter>
+      </Dialog>
     </div>
   );
 }

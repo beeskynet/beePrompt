@@ -20,4 +20,4 @@ Amplify.configure(amplifyConfig);
 function Auth({ children }: any) {
   return children;
 }
-export default withAuthenticator(Auth);
+export default withAuthenticator(Auth, { hideSignUp: true });

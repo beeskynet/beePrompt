@@ -302,6 +302,14 @@ export class CdkChatgptCloneStackAP extends Stack {
         role: cognitoFullAccessRole,
       },
       {
+        name: 'delete-users',
+        dir: 'appsync',
+        appSyncRelolver: { typeName: 'Mutation', fieldName: 'deleteUsers' },
+        layers: [pytzLayer, commonLayer],
+        environment,
+        role: cognitoFullAccessRole,
+      },
+      {
         name: 'websock',
         dir: 'websocket',
         layers: [

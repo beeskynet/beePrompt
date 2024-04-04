@@ -83,6 +83,8 @@ type Mutation {
 		@aws_auth(cognito_groups: ["active"])
 	createUser(username: String!, email: String!, isAdmin: Boolean!, point: Int!, effective_days: Int!): String
 		@aws_auth(cognito_groups: ["admin"])
+	deleteUsers(usernames: [String]!): String
+		@aws_auth(cognito_groups: ["admin"])
 }
 
 type Query {

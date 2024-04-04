@@ -234,7 +234,7 @@ def lambda_handler(event, context):
                 messages=in_msgs,
                 model=model,
                 temperature=temperatureClaude,
-                # metadata={ "user_id": userid },
+                metadata={"user_id": userid},
                 # top_k=topKClaude,
                 # top_p=topPClaude,
             ) as stream:

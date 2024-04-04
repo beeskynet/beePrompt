@@ -1,4 +1,5 @@
 from anthropic import Anthropic
+import anthropic
 from openai import OpenAI
 import tiktoken  # pyright: ignore[reportMissingImports]
 import json
@@ -20,14 +21,19 @@ from common import (
 )
 from typing import List, Dict
 
-OPEN_AI_API_KEY_SECRET_ID = "beePrompt-open-ai-secret"
-CLAUDE_API_KEY_SECRET_ID = "beePrompt-anthropic-secret"
+API_KEY_SECRED_KEY = {
+    "openai": "beePrompt-open-ai-secret",
+    "anthropic": "beePrompt-anthropic-secret",
+}
+API_KEY_ENV_NAME = {
+    "openai": "OPENAI_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+}
 
 CLAUDE_MAX_OUTPUT_TOKENS = 4096  # 2024/4/1現在、全モデルの最大値= 4096
 """
 https://docs.anthropic.com/claude/reference/messages_post
 https://docs.anthropic.com/claude/docs/models-overview
-
 """
 
 
@@ -40,21 +46,21 @@ class InputError(Exception):
     pass
 
 
-def lambda_handler(event, context):
-    def init_anthropic():
+def lambda_handler(event, _):
+    def api_key(platform):
+        value = os.environ.get(API_KEY_ENV_NAME[platform])
+        if value:
+            return value
         session = boto3.session.Session()
         client = session.client(service_name="secretsmanager", region_name="ap-northeast-1")
-        secret_json = client.get_secret_value(SecretId=CLAUDE_API_KEY_SECRET_ID)
-        return Anthropic(api_key=json.loads(secret_json["SecretString"])[CLAUDE_API_KEY_SECRET_ID])
+        secret_json = client.get_secret_value(SecretId=API_KEY_SECRED_KEY[platform])
+        return json.loads(secret_json["SecretString"])[API_KEY_SECRED_KEY[platform]]
+
+    def init_anthropic():
+        return Anthropic(api_key=api_key("anthropic"))
 
     def init_openai():
-        session = boto3.session.Session()
-        client = session.client(service_name="secretsmanager", region_name="ap-northeast-1")
-        secret_json = client.get_secret_value(SecretId=OPEN_AI_API_KEY_SECRET_ID)
-        return OpenAI(api_key=json.loads(secret_json["SecretString"])[OPEN_AI_API_KEY_SECRET_ID])
-
-    def init_claude_client(model):
-        return init_anthropic()
+        return OpenAI(api_key=api_key("openai"))
 
     def count_token(text):
         # Claudeの呼び出し前入力トークン数算出もGPT用のもので代用
@@ -202,11 +208,6 @@ def lambda_handler(event, context):
         if is_gpt(model):
             # gpt
             client = init_openai()
-            print("gpt parameter")
-            print("temprature", temperatureGpt)
-            print("top_p", topPGpt)
-            print("frequency_penalty", frequencyPenaltyGpt)
-            print("presence_penalty", presencePenaltyGpt)
             stream = client.chat.completions.create(
                 model=model,
                 messages=in_msgs,  # pyright: ignore[reportGeneralTypeIssues]
@@ -226,9 +227,7 @@ def lambda_handler(event, context):
                     )
         else:
             # claude
-            client = init_claude_client(model)
-            print("claude parameter")
-            print("temprature", temperatureClaude)
+            client = init_anthropic()
             with client.messages.stream(
                 max_tokens=CLAUDE_MAX_OUTPUT_TOKENS,
                 messages=in_msgs,

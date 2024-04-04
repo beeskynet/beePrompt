@@ -20,14 +20,6 @@ AWS Secret Access Key: [AWSマネージメントコンソールより確認し�
 Default region name: ap-northeast-1
 ```
 
-## APIキーをシークレットマネージャーに登録
-AWSマネージメントコンソールよりOpen AIとAnthropicのAPIキーをシークレットマネージャーに登録します。  
-AWS Secret Manager > シークレット > その他のシークレットのタイプ
-
-|キー|値|
-|---|---|
-|beePrompt-open-ai-secret|[OpenAI APIキー]|
-|beePrompt-anthropic-secret|[Anthropic APIキー]|
 
 ## CDK
 ### Lambda Layer用Pythonパッケージ作成
@@ -63,9 +55,31 @@ $ cdk bootstrap --all
 ```
 # .env
  :
-PROJECT_NAME="[ProjectName]"
+PROJECT_NAME="[プロジェクト名(英数記号)]"
  :
 ```
+
+### APIキーの設定
+環境変数(.env)かAWSシークレットマネージャーのどちらか一方にOpenAIとAnthropicのAPIキーを設定します。  
+(AWSシークレットマネージャーはAWSの課金が発生します)  
+
+- 環境変数
+    ```
+    # .env
+     :
+    OPENAI_API_KEY="[OpenAI APIキー]"
+    ANTHROPIC_API_KEY="[Anthropic APIキー]"
+     :
+    ```
+
+- AWSシークレットマネージャー  
+    AWSマネージメントコンソールよりOpen AIとAnthropicのAPIキーをシークレットマネージャーに登録します。  
+    AWS Secret Manager > シークレット > その他のシークレットのタイプ
+
+    |キー|値|
+    |---|---|
+    |beePrompt-open-ai-secret|[OpenAI APIキー]|
+    |beePrompt-anthropic-secret|[Anthropic APIキー]|
 
 ### User Poolデプロイ・設定
 User Pool関連のリソースをデプロイ
@@ -111,7 +125,7 @@ $ cdk deploy [ProjectName]-AP
 ```
 
 ## フロントエンド構築
-次はフロントエンド構築。frontend/README.mdを参照
+次はフロントエンド構築です。frontend/README.mdを参照
 
 
 ## 番外
@@ -129,4 +143,3 @@ $ ./update_lambda_function.sh websocket/bdrk-websock.py [ProjectName] --region u
 
 共通処理の開発、動作確認に便利です。
 
-※シンボリックリンクはWindows環境のGitで扱いが面倒なので.gitignore登録してあります。

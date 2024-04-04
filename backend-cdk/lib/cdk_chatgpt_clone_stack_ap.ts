@@ -21,6 +21,8 @@ import * as cognito from 'aws-cdk-lib/aws-cognito';
 import path = require('path');
 
 const userPoolId = process.env.USER_POOL_ID || '';
+const openaiApiKey = process.env.OPENAI_API_KEY || '';
+const anthropicApiKey = process.env.ANTHROPIC_API_KEY || '';
 
 export interface CustomizedProps extends StackProps {
   dbTableName: string; // 既存のDBを使う場合
@@ -209,8 +211,13 @@ export class CdkChatgptCloneStackAP extends Stack {
       compatibleRuntimes: [Runtime.PYTHON_3_11],
     });
     //===================================== lambda 作成 =====================================
-    // prettier-ignore
-    const environment = { PROJECT_NAME: props.stackName, USER_POOL_ID: userPoolId, DB_TABLE_NAME: props.dbTableName, };
+    const environment = {
+      PROJECT_NAME: props.stackName,
+      USER_POOL_ID: userPoolId,
+      DB_TABLE_NAME: props.dbTableName,
+      OPENAI_API_KEY: openaiApiKey,
+      ANTHROPIC_API_KEY: anthropicApiKey,
+    };
     const lambdas = [
       // AppSyncAPI
       {

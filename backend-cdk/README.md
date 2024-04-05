@@ -1,25 +1,39 @@
 # beePrompt Backend
 ## Requirements
-事前に下記のインストールが必要です。  
-- npm
-- AWS CLI
+事前に下記のセットアップが必要です。  
+- Node.js(npm)
+- AWS CLI  
 - AWS CDK
-- Docker Desktop  
+- git
+- Docker Desktop or podman
 
 Open AIとAnthropicのWebコンソールよりAPIキーを作成してください。
 - Open AI APIキー
 - Anthropic APIキー
 
-## AWS CLI設定
-AWS CLI未設定の場合は設定
+### 事前セットアップ参考
+自身で環境を用意できる方は飛ばしてください。  
 
-```bash
-$ aws configure
-AWS Access Key ID: [AWSマネージメントコンソールより確認した値]
-AWS Secret Access Key: [AWSマネージメントコンソールより確認した値]
-Default region name: ap-northeast-1
-```
+- Node.js  
+    https://nodejs.org/en/download/  
+    上記URLよりインスートーラーをダウンロード、インストールしてください。  
+    バージョンは本項執筆時点でv20.12.1(x64)での動作確認を行っています。  
+    もちろんnodenv/nvm等のバージョン管理ツールを利用しても構いません。  
+  
+- AWS CLI(コマンドラインインターフェース)  
+    https://dev.classmethod.jp/articles/install-aws-cli-on-the-windows-11-terminal-at-hand-and-execute-aws-cli-commands/  
+    上記記事を参考にインストールし`aws configure`まで行ってください。  
 
+- AWS CDK
+    ```
+    $ npm install -g aws-cdk
+    ```
+- git
+    https://qiita.com/T-H9703EnAc/items/4fbe6593d42f9a844b1c  
+    上記記事を参考にインストールしてください。  
+
+- Docker Desktop
+    cdk bootstrap --all
 
 ## CDK
 ### Lambda Layer用Pythonパッケージ作成
@@ -30,26 +44,26 @@ $ docker pull yayamura/aws-lambda-layer-python3-11
 
 lambda_layer配下のcommon以外の各フォルダで下記を実行
 ```bash
-$ docker run --platform linux/amd64 --rm -it -v `pwd`:/var/task yayamura/aws-lambda-layer-python3-11
+$ docker run --platform linux/amd64 --rm -it -v .:/var/task yayamura/aws-lambda-layer-python3-11
 ```
+- ※ podmanの場合、`--privileged`オプションを付けます。また相対パスが効かない模様。  
+    ```bash
+    $ podman run --platform linux/amd64 --rm -it -v `pwd`:/var/task yayamura/aws-lambda-layer-python3-11
+    ```
+
 container内
 ```bash
 $ pip install -r requirements.txt -t ./python
-exit
+$ exit
 ```
 
 ### CDKセットアップ
-npm install
+backend-cdk配下でnpm install
 ```bash
 $ npm install
 ```
 
 CDKブートストラップ
-
-```bash
-$ cdk bootstrap --all
-```
-
 .env.sampleを.envに改名してPROJECT_NAMEに任意のプロジェクト名を設定  
 (USER_POOL_IDの方はあとで修正します)  
 ```
@@ -58,6 +72,11 @@ $ cdk bootstrap --all
 PROJECT_NAME="[プロジェクト名(英数記号)]"
  :
 ```
+
+```bash
+$ cdk bootstrap --all
+```
+
 
 ### APIキーの設定
 環境変数(.env)かAWSシークレットマネージャーのどちらか一方にOpenAIとAnthropicのAPIキーを設定します。  

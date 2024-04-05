@@ -132,7 +132,7 @@ def check_enough_points(userid: str, in_usage_point: str):
             "success": False,
             "error-response": {
                 "error": "Not enough points",
-                "errorCode": "LackOfPoints",
+                "errorType": "LackOfPoints",
             },
         }
     return {"success": True}

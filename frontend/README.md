@@ -2,9 +2,15 @@
 
 ## Requirements
 事前に下記のインストールと設定が必要です。  
-- npm
+- Node.js
 - AWS CLI
 - amplify
+
+### 事前セットアップ参考
+自身で環境を用意できる方は飛ばしてください。  
+
+- amplify
+TODO
 
 ## Setup
 1. npm install

@@ -4,7 +4,6 @@
 - Node.js(npm)
 - AWS CLI  
 - AWS CDK
-- git
 - Docker Desktop or podman
 
 Open AIとAnthropicのWebコンソールよりAPIキーを作成してください。
@@ -28,9 +27,6 @@ Open AIとAnthropicのWebコンソールよりAPIキーを作成してくださ�
     ```
     $ npm install -g aws-cdk
     ```
-- git
-    https://qiita.com/T-H9703EnAc/items/4fbe6593d42f9a844b1c  
-    上記記事を参考にインストールしてください。  
 
 - Docker Desktop
     cdk bootstrap --all
@@ -63,9 +59,8 @@ backend-cdk配下でnpm install
 $ npm install
 ```
 
-CDKブートストラップ
+CDKブートストラップ  
 .env.sampleを.envに改名してPROJECT_NAMEに任意のプロジェクト名を設定  
-(USER_POOL_IDの方はあとで修正します)  
 ```
 # .env
  :
@@ -121,12 +116,19 @@ USER_POOL_ID="[UserPoolId]"
  :
 ```
 adminユーザー作成
-```bash
-$ cd tools
-$ chmod a+x ./create_admin_user.sh
-$ ./create_admin_user.sh
-$ cd ..
-```
+- Mac/Linux
+    ```bash
+    $ cd tools
+    $ chmod a+x ./create_admin_user.sh
+    $ ./create_admin_user.sh
+    $ cd ..
+    ```
+- Windows
+    ```bat
+    > cd tools
+    > ./create_admin_user.bat
+    > cd ..
+    ```
 
 ### その他のAWSリソースをデプロイ
 ```bash

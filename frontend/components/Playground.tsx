@@ -126,7 +126,7 @@ function PlayGround({ signOut }: any) {
     };
 
     try {
-      const { content, dtm, chatid, userDtm, done, error, errorCode } = JSON.parse(event.data);
+      const { content, dtm, chatid, userDtm, done, error, errorType, errorMessage } = JSON.parse(event.data);
       if (dtm === undefined) {
         console.error("想定外のレスポンス形式", event.data);
       } else if (content !== undefined) {
@@ -161,34 +161,26 @@ function PlayGround({ signOut }: any) {
         interface Dict<T> {
           [key: string]: T;
         }
-        const errorMessages: Dict<string> = { InvalidChatHistory: "不正なチャット履歴です。", LackOfPoints: "ポイントが不足しています。" };
+        const errorMessages: Dict<string> = {
+          InvalidChatHistory: "不正なチャット履歴です。",
+          LackOfPoints: "ポイントが不足しています。",
+          OpenAIAPIError: errorMessage,
+          AnthropicAPIError: errorMessage,
+        };
         // エラー系
         setWaitingMap((waitingMap: any) => ({ ...waitingMap, [dtm]: 0 }));
         cleanupWebSocket(dtm);
-        if (error && Array.isArray(error) && error.length > 0) {
-          if (error[0].startsWith("This model's maximum context length is")) {
-            // "This model's maximum context length is ~"はOpenAIのメッセージ
-            alert("メッセージサイズの上限に達しました。前のメッセージを削除するか、新規チャットを開いてください。");
-          } else {
-            console.error("request error :", error);
-          }
-        } else if (Object.keys(errorMessages).includes(errorCode)) {
-          setChats((chats: any) => {
-            const messages = chats[chatid];
-            const updatedMsgs = messages.map((msg: any) =>
-              dtm !== msg.dtm || msg.role === "user" ? msg : { ...msg, content: errorMessages[errorCode], isError: true },
-            );
-            chats[chatid] = updatedMsgs;
-            return chats;
-          });
-          return;
+        let chatErrorMessage: string;
+        if (Object.keys(errorMessages).includes(errorType)) {
+          chatErrorMessage = errorMessages[errorType];
         } else {
           console.error("想定外のレスポンス形式", event.data);
+          chatErrorMessage = "An error happend.";
         }
         setChats((chats: any) => {
           const messages = chats[chatid];
           const updatedMsgs = messages.map((msg: any) =>
-            dtm !== msg.dtm || msg.role === "user" ? msg : { ...msg, content: "An error happend.", isError: true },
+            dtm !== msg.dtm || msg.role === "user" ? msg : { ...msg, content: chatErrorMessage, isError: true },
           );
           chats[chatid] = updatedMsgs;
           return chats;

@@ -1,6 +1,7 @@
 from anthropic import Anthropic
 import anthropic
 from openai import OpenAI
+import openai
 import tiktoken  # pyright: ignore[reportMissingImports]
 import json
 import boto3
@@ -8,6 +9,8 @@ import tiktoken  # pyright: ignore[reportMissingImports]
 import inspect
 import os
 import traceback
+import ast
+import re
 from common import (
     access_db_retry,
     save_usage,
@@ -46,12 +49,41 @@ class InputError(Exception):
     pass
 
 
+def handle_api_error(platform, e, apigw_management, connectionId, chatid, dtm, userDtm):
+    print(e.__class__.__name__)
+    error_string = e.args[0]
+    print(error_string)
+    error_code_match = re.search(r"Error code: (\d+)", error_string)
+    error_code = error_code_match.group(1) if error_code_match else None
+    error_object_match = re.search(r"({.*})", error_string)
+    error_object = ast.literal_eval(error_object_match.group(1)) if error_object_match else None
+    error_response = {
+        "error": "%s API Error: %s" % (platform, error_object["error"]["message"] if error_object else error_string),
+        "errorMessage": "%s API Error: %s"
+        % (platform, error_object["error"]["message"] if error_object else error_string),
+        "errorType": "%sAPIError" % platform,
+    }
+
+    apigw_management.post_to_connection(
+        ConnectionId=connectionId,
+        Data=json.dumps(
+            {
+                **error_response,
+                "chatid": chatid,
+                "dtm": dtm,
+                "userDtm": userDtm,
+            }
+        ),
+    )
+    return error_code, error_response
+
+
 def lambda_handler(event, _):
     def api_key(platform):
         value = os.environ.get(API_KEY_ENV_NAME[platform])
         if value:
             return value
-        session = boto3.session.Session()
+        session = boto3.session.Session()  # pyright: ignore[reportAttributeAccessIssue]
         client = session.client(service_name="secretsmanager", region_name="ap-northeast-1")
         secret_json = client.get_secret_value(SecretId=API_KEY_SECRED_KEY[platform])
         return json.loads(secret_json["SecretString"])[API_KEY_SECRED_KEY[platform]]
@@ -144,7 +176,7 @@ def lambda_handler(event, _):
             """1つのuserメッセージに対して1つのassistantメッセージに絞る"""
             error_response = {
                 "error": "Invalid chat history",
-                "errorCode": "InvalidChatHistory",
+                "errorType": "InvalidChatHistory",
             }
             # 1 user x N assistants
             user_assistants_list = []
@@ -208,9 +240,9 @@ def lambda_handler(event, _):
         if is_gpt(model):
             # gpt
             client = init_openai()
-            stream = client.chat.completions.create(
+            stream = client.chat.completions.create(  # pyright: ignore[reportCallIssue]
                 model=model,
-                messages=in_msgs,  # pyright: ignore[reportGeneralTypeIssues]
+                messages=in_msgs,  # pyright: ignore[reportArgumentType]
                 stream=True,
                 user=userid,
                 temperature=temperatureGpt,
@@ -230,7 +262,7 @@ def lambda_handler(event, _):
             client = init_anthropic()
             with client.messages.stream(
                 max_tokens=CLAUDE_MAX_OUTPUT_TOKENS,
-                messages=in_msgs,
+                messages=in_msgs,  # pyright: ignore[reportArgumentType]
                 model=model,
                 temperature=temperatureClaude,
                 metadata={"user_id": userid},
@@ -288,11 +320,29 @@ def lambda_handler(event, _):
                     **error_response,
                     "chatid": chatid,
                     "dtm": dtm,
+                    "userDtm": userDtm,
                 }
             ),
         )
         return {"statusCode": 400, "body": error_response}
+    except anthropic.APIError as e:
+        error_code, error_response = handle_api_error(
+            "Anthropic", e, apigw_management, connectionId, chatid, dtm, userDtm
+        )
+        return {
+            "statusCode": error_code if error_code else 500,
+            "body": error_response,
+        }
+    except openai.APIError as e:
+        error_code, error_response = handle_api_error(
+            "OpenAI", e, apigw_management, connectionId, chatid, dtm, userDtm
+        )
+        return {
+            "statusCode": error_code if error_code else 500,
+            "body": error_response,
+        }
     except Exception as e:
+        print(e.__class__.__name__)
         print(f"{traceback.format_exc()}{location()}")
         apigw_management.post_to_connection(
             ConnectionId=connectionId, Data=json.dumps({"error": traceback.format_exc(), "chatid": chatid, "dtm": dtm})

@@ -1,9 +1,12 @@
 # beePrompt Backend
 ## Requirements
 事前に下記のセットアップが必要です。  
-- Node.js(npm)
+- Node.js(npm)  
+    本項執筆時点の動作確認バージョン: v20.12.1  
 - AWS CLI  
-- AWS CDK
+    本項執筆時点の動作確認バージョン: 2.15.35/Python 3.11.8  
+- AWS CDK   
+    本項執筆時点の動作確認バージョン: 2.135.0
 - Docker Desktop or podman
 
 Open AIとAnthropicのWebコンソールよりAPIキーを作成してください。
@@ -17,6 +20,8 @@ Open AIとAnthropicのWebコンソールよりAPIキーを作成してくださ�
     https://nodejs.org/en/download/  
     上記URLよりインスートーラーをダウンロード、インストールしてください。  
     バージョンは本項執筆時点でv20.12.1(x64)での動作確認を行っています。  
+    すでにインストール済みの場合、バージョンが古いと動かない可能性があります。  
+    その際は アンインストール → 再インストール してください。  
     もちろんnodenv/nvm等のバージョン管理ツールを利用しても構いません。  
   
 - AWS CLI(コマンドラインインターフェース)  
@@ -64,7 +69,7 @@ CDKブートストラップ
 ```
 # .env
  :
-PROJECT_NAME="[プロジェクト名(英数記号)]"
+PROJECT_NAME=[プロジェクト名(英数記号)]
  :
 ```
 
@@ -81,8 +86,8 @@ $ cdk bootstrap --all
     ```
     # .env
      :
-    OPENAI_API_KEY="[OpenAI APIキー]"
-    ANTHROPIC_API_KEY="[Anthropic APIキー]"
+    OPENAI_API_KEY=[OpenAI APIキー]
+    ANTHROPIC_API_KEY=[Anthropic APIキー]
      :
     ```
 
@@ -105,14 +110,14 @@ $ cdk deploy [ProjectName]-UserPool
 ```
 # .env
  :
-USER_POOL_ID="[UserPoolId]"
+USER_POOL_ID=[UserPoolIdの値]
  :
 ```
 ```typescript
 // frontend/lib/environments.ts
  :
-  aws_user_pools_id: "[UserPoolId]",
-  aws_user_pools_web_client_id: "[UserPoolWebClientId]",
+  aws_user_pools_id: "[UserPoolIdの値]",
+  aws_user_pools_web_client_id: "[UserPoolWebClientIdの値]",
  :
 ```
 adminユーザー作成
@@ -140,8 +145,8 @@ $ cdk deploy [ProjectName]-AP
 ```typescript
 // frontend/lib/environments.ts
  :
-  wssAp: "[AP.WebSocketURL]",
-  appSync: "[AppSyncURL]",
+  wssAp: "[WebSocketURLの値]",
+  appSync: "[AppSyncURLの値]",
  :
 ```
 

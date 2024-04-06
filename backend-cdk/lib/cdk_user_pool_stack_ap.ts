@@ -27,7 +27,7 @@ export class CdkUserPoolStackAP extends Stack {
         minLength: 8,
       },
     });
-    new CfnOutput(this, 'UserPoolIdOutput', {
+    new CfnOutput(this, 'UserPoolId', {
       value: userPool.userPoolId,
       description: 'The ID of the user pool',
       exportName: `${props.stackName}-UserPool`,
@@ -60,7 +60,7 @@ export class CdkUserPoolStackAP extends Stack {
         userSrp: true,
       },
     });
-    new CfnOutput(this, 'UserPoolClientId', {
+    new CfnOutput(this, 'UserPoolWebClientId', {
       value: webClient.userPoolClientId,
       description: 'User Pool Client ID',
       exportName: `${props.stackName}-UserPool-WebClientID`,

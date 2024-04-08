@@ -137,7 +137,7 @@ adminユーザー作成
 
 ### その他のAWSリソースをデプロイ
 ```bash
-$ cdk deploy [ProjectName]-AP
+$ cdk deploy [ProjectName]
 ```
 
 デプロイ時にコンソール出力されるWebSocketURLとAppSyncURLをfrontend設定に反映

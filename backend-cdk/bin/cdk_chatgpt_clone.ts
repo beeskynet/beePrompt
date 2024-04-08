@@ -20,7 +20,7 @@ const app = new cdk.App();
 }
 //メイン機能東京リージョン用リソース作成
 {
-  const stackName: string = projectName + '-AP';
+  const stackName: string = projectName;
   const region: string = 'ap-northeast-1';
   new CdkChatgptCloneStackAP(app, stackName, {
     stackName,

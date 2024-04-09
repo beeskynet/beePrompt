@@ -342,6 +342,7 @@ export class CdkChatgptCloneStackAP extends Stack {
         timeout: Duration.seconds(900),
         role: lambdaParam.role,
         layers: lambdaParam.layers,
+        memorySize: lambdaName === 'websock' ? 10240 : 256,
       });
       if (lambdaParam.appSyncRelolver) {
         const lambdaDataSource = new aws_appsync.LambdaDataSource(

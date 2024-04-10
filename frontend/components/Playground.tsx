@@ -13,6 +13,7 @@ import MaterialButton from "./MaterialButton";
 import SettingsDrawer from "./SettingsDrawer";
 import OpenAiSettingsDrawer from "./OpenAiSettingsDrawer";
 import ClaudeSettingsDrawer from "./ClaudeSettingsDrawer";
+import MenuDrawer from "./MenuDrawer";
 import useOnWindowRefocus from "lib/useOnWindowReforcus";
 
 let chats: any = {};
@@ -25,34 +26,6 @@ function PlayGround({ signOut }: any) {
       signOut();
     }
   });
-  const AccountButton = () => {
-    const router = useRouter();
-    const menuItemClassName = "p-3 text-black";
-    return (
-      <div className="flex">
-        <Menu placement="bottom-end">
-          <MenuHandler>
-            <div>
-              <MaterialButton name="person" size={32} />
-            </div>
-          </MenuHandler>
-          <MenuList className="p-0">
-            {isAdmin ? (
-              <MenuItem className={menuItemClassName} onClick={() => router.push("/Management")}>
-                Management
-              </MenuItem>
-            ) : null}
-            <MenuItem className={menuItemClassName} onClick={() => router.push("/Usage")}>
-              Usage
-            </MenuItem>
-            <MenuItem className={menuItemClassName} onClick={signOut}>
-              Sign Out
-            </MenuItem>
-          </MenuList>
-        </Menu>
-      </div>
-    );
-  };
   const [userInput, setUserInput] = useState("");
   const [_chats, _setChats] = useAtom(AppAtoms.chats);
   const setChats = (func: any) => {
@@ -541,7 +514,7 @@ function PlayGround({ signOut }: any) {
           </Button>
           <DropdownSelect />
         </div>
-        <AccountButton />
+        <MaterialButton name="person" size={32} onClick={() => setOpenDrawer("drawerZero")} />
         <SettingsDrawer />
         <OpenAiSettingsDrawer
           temperatureGpt={temperatureGpt}
@@ -554,6 +527,7 @@ function PlayGround({ signOut }: any) {
           setPresencePenaltyGpt={setPresencePenaltyGpt}
         />
         <ClaudeSettingsDrawer temperatureClaude={temperatureClaude} setTemperatureClaude={setTemperatureClaude} />
+        <MenuDrawer signOut={signOut} />
       </div>
 
       {/* メインエリア */}

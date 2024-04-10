@@ -53,7 +53,7 @@ function SettingsDrawer() {
   if (open !== "drawerOne") return null;
   return (
     <Drawer
-      open={open}
+      open={!!open}
       onClose={closeDrawer}
       size={350}
       placement="right"

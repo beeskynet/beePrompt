@@ -59,6 +59,7 @@ function PlayGround({ signOut }: any) {
   const router: any = useRouter();
   const [settings, setSettings]: any = useAtom(AppAtoms.settings);
   const [_, setWebsocketMap]: any = useState({});
+  const [chatHistoryLastEvaluatedKey, setChatHistoryLastEvaluatedKey] = useState("");
 
   const userTextareaRef: any = useRef();
   const systemTextareaRef: any = useRef();
@@ -76,6 +77,7 @@ function PlayGround({ signOut }: any) {
   const [temperatureClaude, setTemperatureClaude] = useState(1);
   //const [topPClaude, setTopPClaude] = useState(0.999);
   //const [topKClaude, setTopKClaude] = useState(250);
+  const container = useRef<HTMLDivElement | null>(null);
 
   systemInputRef.current = systemInput;
   const setChatsEmptyMessages = (chatid: any) => {
@@ -276,24 +278,41 @@ function PlayGround({ signOut }: any) {
     }
   };
 
-  const getChatHistory = async (userid: any) => {
+  const getChatHistory = async (userid: string, isOnScroll: boolean = false) => {
+    if (isChatsDeleteMode && isOnScroll) return;
+    if (isOnScroll && !chatHistoryLastEvaluatedKey) return;
     try {
       const query = `
-          query($userid:String!) {
-            getChatIdList(userid: $userid) {
-              chatid title updatedAt
+          query($userid:String!, $LastEvaluatedKey:String) {
+            getChatIdList(userid: $userid, LastEvaluatedKey: $LastEvaluatedKey) {
+              chats {chatid title updatedAt }
+              LastEvaluatedKey
             }
           }`;
-      const variables = { userid };
-      const data = await fetchAppSync({ query, variables });
+      const variables = { userid, LastEvaluatedKey: isOnScroll ? chatHistoryLastEvaluatedKey : null };
+      const res = await fetchAppSync({ query, variables });
+      setChatHistoryLastEvaluatedKey(res.getChatIdList.LastEvaluatedKey);
+      const chats = res.getChatIdList.chats;
       setChatHistory((chatHistory: any) => {
-        // 応答中チャットとDBから取得したチャット履歴をマージ
-        const gotChatids = data.getChatIdList.map((chat: any) => chat.chatid);
-        const responding = chatHistory.filter((chat: any) => chat.title === "...waiting AI response..." && !gotChatids.includes(chat.chatid));
-        return data.getChatIdList ? [...responding, ...data.getChatIdList] : [...responding];
+        if (isOnScroll) {
+          return [...chatHistory, ...chats];
+        } else {
+          // 応答中チャットとDBから取得したチャット履歴をマージ
+          const gotChatids = chats.map((chat: any) => chat.chatid);
+          const responding = chatHistory.filter((chat: any) => chat.title === "...waiting AI response..." && !gotChatids.includes(chat.chatid));
+          return chats ? [...responding, ...chats] : [...responding];
+        }
       });
     } catch (e) {
       console.error("getChatHistory()", e);
+    }
+  };
+  const onScroll = () => {
+    const el = container.current;
+    if (!el) return;
+    const rate = el.scrollTop / (el.scrollHeight - el.clientHeight);
+    if (rate > 0.99) {
+      getChatHistory(userid, true);
     }
   };
 
@@ -598,7 +617,7 @@ function PlayGround({ signOut }: any) {
                 />
               </>
             )}
-            <div className="overflow-x-hidden overflow-y-auto">
+            <div className="overflow-x-hidden overflow-y-auto" ref={container} onScroll={onScroll}>
               {chatsOnDisplay.map((chat: any, index: any) => (
                 <div key={index} className="relative group">
                   {isChatsDeleteMode ? (

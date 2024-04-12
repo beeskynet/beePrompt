@@ -16,7 +16,7 @@ def lambda_handler(event, context):
 
     def convert_string_to_dict(input_str):
         result_dict = {}
-        for item in input_str.strip("{}").sprit(", "):
+        for item in input_str.strip("{}").split(", "):
             key, value = item.split("=")
             result_dict[key] = value
         return result_dict

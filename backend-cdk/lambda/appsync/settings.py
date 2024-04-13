@@ -7,9 +7,8 @@ table_name = common.table_name
 table = dynamodb.Table(table_name)
 
 
-def lambda_handler(event, context):
-    args = event["arguments"]
-    userid = args["userid"]  # TODO: トークンから取得
+def lambda_handler(event, _):
+    userid = event["identity"]["claims"]["sub"]
 
     try:
         res = table.get_item(Key={"pk": "settings#%s" % userid, "sk": "settings"})

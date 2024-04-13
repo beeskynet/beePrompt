@@ -97,15 +97,14 @@ function Usage() {
 
     //
     const getUsage = async () => {
-      const variables = { userid: userid };
       const query = `
-        query($userid:String!) {
-          getUsage(userid: $userid) {
+        query {
+          getUsage {
             smrDaily { day usagePoint }
             smrMonthly { month usagePoint }
           }
         }`;
-      const res = await fetchAppSync({ query, variables });
+      const res = await fetchAppSync({ query });
       setSmrDaily(res.getUsage.smrDaily);
       setSmrMonthly(res.getUsage.smrMonthly);
     };

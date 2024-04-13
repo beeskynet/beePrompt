@@ -36,14 +36,14 @@ function SettingsDrawer() {
     }
     return resJson?.data;
   };
-  const saveSettings = async (userid: any, settings: any) => {
+  const saveSettings = async (settings: any) => {
     try {
       // チャット保存
       const query = `
-        mutation($userid:String!, $settings:AWSJSON!) {
-          putSettings(userid: $userid, settings: $settings)
+        mutation($settings:AWSJSON!) {
+          putSettings(settings: $settings)
         }`;
-      const variables = { userid, settings: JSON.stringify(settings) };
+      const variables = { settings: JSON.stringify(settings) };
       return await fetchAppSync({ query, variables });
     } catch (e) {
       console.error("save settings error", e);
@@ -80,7 +80,7 @@ function SettingsDrawer() {
             const copied = JSON.parse(JSON.stringify(settings));
             copied.appSettings.copyChatOnMessageDeleteMode = !settings.appSettings.copyChatOnMessageDeleteMode;
             setSettings(copied);
-            await saveSettings(userid, copied);
+            await saveSettings(copied);
           }}
         />
         <span className="cursor-pointer select-none">メッセージ削除モードに入る際にチャットを複製する</span>

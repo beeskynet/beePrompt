@@ -11,8 +11,8 @@ table_name = common.table_name
 table = dynamodb.Table(table_name)
 
 
-def lambda_handler(event, context):
-    userid = event["arguments"]["userid"]
+def lambda_handler(event, _):
+    userid = event["identity"]["claims"]["sub"]
 
     def sum_by_key(data, keyname, valuename):
         result = {}

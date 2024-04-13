@@ -173,10 +173,10 @@ function PlayGround({ signOut }: any) {
     try {
       // チャット削除
       const query = `
-        mutation($chatids:[String]!, $userid:String!) {
-          deleteChats(chatids: $chatids, userid: $userid)
+        mutation($chatids:[String]!) {
+          deleteChats(chatids: $chatids)
         }`;
-      const variables = { userid, chatids };
+      const variables = { chatids };
       await fetchAppSync({ query, variables });
       // チャット履歴リスト更新
       await getChatHistory(userid);
@@ -190,10 +190,10 @@ function PlayGround({ signOut }: any) {
     try {
       // チャット保存
       const query = `
-            mutation($chatid:String!, $userid:String!, $messages:[MessageInput]!, $title:String, $sysMsg:String) {
-              putChat(chatid: $chatid, userid: $userid, sysMsg: $sysMsg, title: $title, messages: $messages)
+            mutation($chatid:String!, $messages:[MessageInput]!, $title:String, $sysMsg:String) {
+              putChat(chatid: $chatid, sysMsg: $sysMsg, title: $title, messages: $messages)
             }`;
-      const variables = { userid, chatid, messages: messages.filter((msg: any) => !msg.isError), sysMsg, title };
+      const variables = { chatid, messages: messages.filter((msg: any) => !msg.isError), sysMsg, title };
       await fetchAppSync({ query, variables });
       // チャット履歴リスト更新
       await getChatHistory(userid);
@@ -235,11 +235,10 @@ function PlayGround({ signOut }: any) {
   const initSettings = async (userid: any) => {
     try {
       const query = `
-        query($userid:String!) {
-          getSettings(userid: $userid)
+        query {
+          getSettings
         }`;
-      const variables = { userid };
-      const data = await fetchAppSync({ query, variables });
+      const data = await fetchAppSync({ query });
       const settings = JSON.parse(data.getSettings);
       if (settings) {
         // DBに存在しない項目はstore.jsでの初期化の内容を優先
@@ -252,18 +251,18 @@ function PlayGround({ signOut }: any) {
       console.error("getSettings() error", e);
     }
   };
-  const displayChat = async (userid: any, chatid: any, updateHistory = true) => {
+  const displayChat = async (chatid: any, updateHistory = true) => {
     try {
       if (!chats[chatid]) {
         const query = `
-        query($chatid:String!, $userid:String!) {
-          getChatDetail(chatid: $chatid, userid: $userid) {
+        query($chatid:String!) {
+          getChatDetail(chatid: $chatid) {
             chat {
               role content done dtm model
             }
           }
         }`;
-        const variables = { userid, chatid };
+        const variables = { chatid };
         const data = await fetchAppSync({ query, variables });
         setChats((chats: any) => {
           chats[chatid] = data?.getChatDetail?.chat ? data.getChatDetail.chat : [];
@@ -339,7 +338,7 @@ function PlayGround({ signOut }: any) {
         newChat();
       } else {
         setChatid(gotChatId);
-        displayChat(userid, gotChatId);
+        displayChat(gotChatId);
       }
 
       // DBからユーザー設定を取得
@@ -351,7 +350,7 @@ function PlayGround({ signOut }: any) {
         if (url.pathname !== "/" || !url.searchParams.has("c")) return;
         const gotChatId = getUrlChatid();
         setChatid(gotChatId);
-        displayChat(userid, gotChatId, false); // history.stateを更新しない
+        displayChat(gotChatId, false); // history.stateを更新しない
       });
     };
     initUserid();
@@ -473,7 +472,7 @@ function PlayGround({ signOut }: any) {
   };
   const clickChatHistoryLine = (chatid: any) => async () => {
     setIsMessageDeleteMode(false);
-    displayChat(userid, chatid);
+    displayChat(chatid);
   };
   const toggleSidebar = () => {
     const content = sidebarContent === "history" ? "edit" : "history";

@@ -96,7 +96,7 @@ type Query {
 		@aws_auth(cognito_groups: ["active"])
 	getUsage(userid: String!): Usage
 		@aws_auth(cognito_groups: ["active"])
-	getChatIdList(userid: String! LastEvaluatedKey: String): ChatMetadataResponse
+	getChatIdList(LastEvaluatedKey: String): ChatMetadataResponse
 		@aws_auth(cognito_groups: ["active"])
 	getChatDetail(userid: String!, chatid: String!): Chat
 		@aws_auth(cognito_groups: ["active"])

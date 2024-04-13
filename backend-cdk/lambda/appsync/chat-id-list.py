@@ -9,9 +9,8 @@ table_name = common.table_name
 table = dynamodb.Table(table_name)
 
 
-def lambda_handler(event, context):
-    print(event)
-    userid = event["arguments"]["userid"]
+def lambda_handler(event, _):
+    userid = event["identity"]["claims"]["sub"]
     LastEvaluatedKey = event["arguments"].get("LastEvaluatedKey")
 
     def convert_string_to_dict(input_str):

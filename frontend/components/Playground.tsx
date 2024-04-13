@@ -283,13 +283,13 @@ function PlayGround({ signOut }: any) {
     if (isOnScroll && !chatHistoryLastEvaluatedKey) return;
     try {
       const query = `
-          query($userid:String!, $LastEvaluatedKey:String) {
-            getChatIdList(userid: $userid, LastEvaluatedKey: $LastEvaluatedKey) {
+          query($LastEvaluatedKey:String) {
+            getChatIdList(LastEvaluatedKey: $LastEvaluatedKey) {
               chats {chatid title updatedAt }
               LastEvaluatedKey
             }
           }`;
-      const variables = { userid, LastEvaluatedKey: isOnScroll ? chatHistoryLastEvaluatedKey : null };
+      const variables = { LastEvaluatedKey: isOnScroll ? chatHistoryLastEvaluatedKey : null };
       const res = await fetchAppSync({ query, variables });
       setChatHistoryLastEvaluatedKey(res.getChatIdList.LastEvaluatedKey);
       const chats = res.getChatIdList.chats;

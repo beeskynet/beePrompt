@@ -45,7 +45,6 @@ function PlayGround({ signOut }: any) {
     _setChatid(newChatid);
   };
   const [chatHistory, setChatHistory]: any = useAtom(AppAtoms.chatHistory);
-  const [userid, setUserid]: any = useState("");
   const [isAdmin, setIsAdmin]: any = useState(false);
   const selectedModel: any = useAtomValue(AppAtoms.selectedModel);
   const isParallel: any = useAtomValue(AppAtoms.isParallel);
@@ -179,7 +178,7 @@ function PlayGround({ signOut }: any) {
       const variables = { chatids };
       await fetchAppSync({ query, variables });
       // チャット履歴リスト更新
-      await getChatHistory(userid);
+      await getChatHistory();
     } catch (e) {
       console.error("delete chats error", e);
     }
@@ -196,7 +195,7 @@ function PlayGround({ signOut }: any) {
       const variables = { chatid, messages: messages.filter((msg: any) => !msg.isError), sysMsg, title };
       await fetchAppSync({ query, variables });
       // チャット履歴リスト更新
-      await getChatHistory(userid);
+      await getChatHistory();
     } catch (e) {
       console.error("save chat error", e);
     }
@@ -232,7 +231,7 @@ function PlayGround({ signOut }: any) {
     return resJson?.data;
   };
 
-  const initSettings = async (userid: any) => {
+  const initSettings = async () => {
     try {
       const query = `
         query {
@@ -277,7 +276,7 @@ function PlayGround({ signOut }: any) {
     }
   };
 
-  const getChatHistory = async (userid: string, isOnScroll: boolean = false) => {
+  const getChatHistory = async (isOnScroll: boolean = false) => {
     if (isChatsDeleteMode && isOnScroll) return;
     if (isOnScroll && !chatHistoryLastEvaluatedKey) return;
     try {
@@ -311,7 +310,7 @@ function PlayGround({ signOut }: any) {
     if (!el) return;
     const rate = el.scrollTop / (el.scrollHeight - el.clientHeight);
     if (rate > 0.99) {
-      getChatHistory(userid, true);
+      getChatHistory(true);
     }
   };
 
@@ -319,15 +318,11 @@ function PlayGround({ signOut }: any) {
     const initUserid = async () => {
       const session: any = await fetchAuthSession();
 
-      // ユーザー情報取得
-      const userid = session.tokens.accessToken.payload.sub;
-      setUserid(userid);
-
       // 管理者判定
       setIsAdmin(session.tokens.accessToken.payload["cognito:groups"].includes("admin"));
 
       // Chat情報初期化
-      getChatHistory(userid);
+      getChatHistory();
       const getUrlChatid = () => {
         const url = new URL(window.location.href);
         const prms = url.searchParams;
@@ -342,7 +337,7 @@ function PlayGround({ signOut }: any) {
       }
 
       // DBからユーザー設定を取得
-      initSettings(userid);
+      initSettings();
 
       // 戻る・進む時の処理
       window.addEventListener("popstate", () => {
@@ -597,7 +592,7 @@ function PlayGround({ signOut }: any) {
                     }
                     setChatsidsForDelete([]); // 2重処理抑止のため最初に
                     await deleteChats(chatidsForDelete);
-                    await getChatHistory(userid);
+                    await getChatHistory();
                     setIsChatsDeleteMode(false); // 履歴を消した後に表示切り替え
                     setChatsOnDeleteMode([]);
                     if (chatidsForDelete.includes(chatid)) {

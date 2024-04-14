@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from "react";
 import { Drawer, Checkbox, Typography, IconButton } from "@material-tailwind/react";
 import { AppAtoms } from "lib/store";
 import { apiUrls } from "lib/environments";
@@ -10,18 +9,6 @@ function SettingsDrawer() {
   const [open, setOpen]: any = useAtom(AppAtoms.drawerOpen);
   const closeDrawer: any = () => setOpen(false);
   const [settings, setSettings]: any = useAtom(AppAtoms.settings);
-  const [userid, setUserid]: any = useState();
-
-  useEffect(() => {
-    const initUserid = async () => {
-      const session: any = await fetchAuthSession();
-
-      // ユーザー情報取得
-      const userid = session.tokens.accessToken.payload.sub;
-      setUserid(userid);
-    };
-    initUserid();
-  }, []);
 
   const fetchAppSync = async ({ query, variables }: any) => {
     const session: any = await fetchAuthSession();

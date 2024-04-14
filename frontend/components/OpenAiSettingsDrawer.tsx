@@ -1,8 +1,7 @@
-import React, { useState, useEffect, Dispatch, SetStateAction } from "react";
+import React, { Dispatch, SetStateAction } from "react";
 import { Drawer, Button, Typography, IconButton } from "@material-tailwind/react";
 import { AppAtoms } from "lib/store";
 import { useAtom } from "jotai";
-import { fetchAuthSession } from "aws-amplify/auth";
 import { withAuthenticator } from "@aws-amplify/ui-react";
 
 type Props = {
@@ -27,18 +26,6 @@ const OpenAiSettingsDrawer: React.FC<Props> = ({
 }) => {
   const [open, setOpen] = useAtom(AppAtoms.drawerOpen);
   const closeDrawer = () => setOpen(false);
-  const [, setUserid] = useState<string | null>();
-
-  useEffect(() => {
-    const initUserid = async () => {
-      const session = await fetchAuthSession();
-
-      // ユーザー情報取得
-      const userid = session.tokens?.accessToken.payload.sub;
-      setUserid(userid);
-    };
-    initUserid();
-  }, []);
 
   const handleChangeTemperature = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.valueAsNumber;

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -6,8 +6,15 @@ import { solarizedlight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import MaterialButton from "./MaterialButton";
 import remarkGfm from "remark-gfm";
 
-function Markdown({ children, className }: any) {
-  const onClick = (text: any) => () => {
+interface Props {
+  node?: HTMLElement;
+  children?: string | null;
+  inline?: string;
+  className?: string;
+}
+
+function Markdown({ children, className, ...props }: Props) {
+  const onClick = (text: string) => () => {
     navigator.clipboard.writeText(text);
   };
   return (

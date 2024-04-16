@@ -1,7 +1,11 @@
 import "styles/globals.css";
 import Auth from "lib/auth";
 
-export default function RootLayout({ children }: any) {
+interface Props {
+  children?: string
+}
+
+export default function RootLayout({ children, ...props }: Props) {
   return (
     <html lang="en">
       <head>

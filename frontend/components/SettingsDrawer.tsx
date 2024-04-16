@@ -6,28 +6,33 @@ import { useAtom } from "jotai";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { withAuthenticator } from "@aws-amplify/ui-react";
 
+interface variables {
+  userid?: string;
+  settings?: string;
+}
+
 function SettingsDrawer() {
-  const [open, setOpen]: any = useAtom(AppAtoms.drawerOpen);
-  const closeDrawer: any = () => setOpen(false);
-  const [settings, setSettings]: any = useAtom(AppAtoms.settings);
-  const [userid, setUserid]: any = useState();
+  const [open, setOpen] = useAtom(AppAtoms.drawerOpen);
+  const closeDrawer = () => setOpen(null);
+  const [settings, setSettings] = useAtom(AppAtoms.settings);
+  const [userid, setUserid] = useState<string | undefined>();
 
   useEffect(() => {
     const initUserid = async () => {
-      const session: any = await fetchAuthSession();
+      const session = await fetchAuthSession();
 
       // ユーザー情報取得
-      const userid = session.tokens.accessToken.payload.sub;
+      const userid = session.tokens?.accessToken.payload.sub;
       setUserid(userid);
     };
     initUserid();
   }, []);
 
-  const fetchAppSync = async ({ query, variables }: any) => {
-    const session: any = await fetchAuthSession();
+  const fetchAppSync = async ({ query, variables }: { query: string, variables: variables }) => {
+    const session = await fetchAuthSession();
     const res = await fetch(apiUrls.appSync, {
       method: "POST",
-      headers: { Authorization: session.tokens.accessToken.toString() },
+      headers: session.tokens?.accessToken ? { Authorization: session.tokens.accessToken.toString() } : undefined,
       body: JSON.stringify({ query, variables }),
     });
     const resJson = await res.json();
@@ -36,7 +41,7 @@ function SettingsDrawer() {
     }
     return resJson?.data;
   };
-  const saveSettings = async (userid: any, settings: any) => {
+  const saveSettings = async (userid: string | undefined, settings: string) => {
     try {
       // チャット保存
       const query = `
@@ -53,7 +58,7 @@ function SettingsDrawer() {
   if (open !== "drawerOne") return null;
   return (
     <Drawer
-      open={open}
+      open={open == "drawerOne"}
       onClose={closeDrawer}
       size={350}
       placement="right"

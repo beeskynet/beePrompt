@@ -11,7 +11,7 @@ type Props = {
 };
 const ClaudeSettingsDrawer: React.FC<Props> = ({ temperatureClaude, setTemperatureClaude }) => {
   const [open, setOpen] = useAtom(AppAtoms.drawerOpen);
-  const closeDrawer = () => setOpen(false);
+  const closeDrawer = () => setOpen(null);
   const [, setUserid] = useState<string | null>();
 
   useEffect(() => {

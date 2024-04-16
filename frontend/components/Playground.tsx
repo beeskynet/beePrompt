@@ -1,12 +1,12 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, ChangeEventHandler } from "react";
 import UserAssistant from "./UserAssistant";
 import DropdownSelect from "./DropdownSelect";
 import { Button, Menu, MenuHandler, MenuList, MenuItem, Input } from "@material-tailwind/react";
-import { fetchAuthSession } from "aws-amplify/auth";
-import { useRouter } from "next/navigation";
+import { fetchAuthSession, signOut } from "aws-amplify/auth";
+import { useRouter, usePathname } from "next/navigation";
 import { withAuthenticator } from "@aws-amplify/ui-react";
-import { AppAtoms } from "lib/store";
+import { AppAtoms, Message } from "lib/store";
 import { apiUrls } from "lib/environments";
 import { useAtom, useSetAtom, useAtomValue } from "jotai";
 import MaterialButton from "./MaterialButton";
@@ -15,7 +15,15 @@ import OpenAiSettingsDrawer from "./OpenAiSettingsDrawer";
 import ClaudeSettingsDrawer from "./ClaudeSettingsDrawer";
 import useOnWindowRefocus from "lib/useOnWindowReforcus";
 
-let chats: any = {};
+interface Chats {
+  [key: string]: Message[]
+}
+
+interface WebSocketMap {
+  [key: string]: WebSocket
+}
+
+let chats: Chats = {};
 let chatid = "";
 function PlayGround({ signOut }: any) {
   useOnWindowRefocus(async () => {
@@ -55,46 +63,47 @@ function PlayGround({ signOut }: any) {
   };
   const [userInput, setUserInput] = useState("");
   const [_chats, _setChats] = useAtom(AppAtoms.chats);
-  const setChats = (func: any) => {
+  const setChats = (func: Function) => {
     chats = func(chats);
     _setChats(JSON.parse(JSON.stringify(chats)));
     _chats; // 表示更新用
   };
-  const [messagesOnDeleteMode, setMessagesOnDeleteMode]: any = useAtom(AppAtoms.messagesOnDeleteMode);
-  const [chatsOnDeleteMode, setChatsOnDeleteMode]: any = useState([]);
-  const [chatidsForDelete, setChatsidsForDelete]: any = useState([]);
-  const [systemInput, setSystemInput]: any = useState("");
-  const [autoScroll, setAutoScroll]: any = useState(true);
-  const [sidebarContent, setSidebarContent]: any = useState("history");
-  const [_chatid, _setChatid]: any = useAtom(AppAtoms.chatid);
-  const setChatid = (newChatid: any) => {
+  const [messagesOnDeleteMode, setMessagesOnDeleteMode] = useAtom(AppAtoms.messagesOnDeleteMode);
+  const [chatsOnDeleteMode, setChatsOnDeleteMode] = useState<Message[]>([]);
+  const [chatidsForDelete, setChatsidsForDelete] = useState<string[]>([]);
+  const [systemInput, setSystemInput] = useState("");
+  const [autoScroll, setAutoScroll] = useState(true);
+  const [sidebarContent, setSidebarContent] = useState("history");
+  const [_chatid, _setChatid] = useAtom(AppAtoms.chatid);
+  const setChatid = (newChatid: string) => {
     chatid = newChatid;
     _setChatid(newChatid);
   };
-  const [chatHistory, setChatHistory]: any = useAtom(AppAtoms.chatHistory);
-  const [userid, setUserid]: any = useState("");
-  const [isAdmin, setIsAdmin]: any = useState(false);
-  const selectedModel: any = useAtomValue(AppAtoms.selectedModel);
-  const isParallel: any = useAtomValue(AppAtoms.isParallel);
-  const submissionStatus: any = useAtomValue(AppAtoms.submissionStatus);
-  const setWaitingMap: any = useSetAtom(AppAtoms.waitingMap);
-  const isResponding: any = useAtomValue(AppAtoms.isResponding);
-  const [isMessageDeleteMode, setIsMessageDeleteMode]: any = useAtom(AppAtoms.isMessageDeleteMode);
-  const [isChatsDeleteMode, setIsChatsDeleteMode]: any = useAtom(AppAtoms.isChatsDeleteMode);
-  const [chatidOnEditTitle, setChatidOnEditTitle]: any = useState("");
-  const setOpenDrawer: any = useSetAtom(AppAtoms.drawerOpen);
-  const router: any = useRouter();
-  const [settings, setSettings]: any = useAtom(AppAtoms.settings);
-  const [_, setWebsocketMap]: any = useState({});
+  const [chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
+  const [userid, setUserid] = useState<string | undefined>("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const selectedModel = useAtomValue(AppAtoms.selectedModel);
+  const isParallel = useAtomValue(AppAtoms.isParallel);
+  const submissionStatus = useAtomValue(AppAtoms.submissionStatus);
+  const setWaitingMap = useSetAtom(AppAtoms.waitingMap);
+  const isResponding = useAtomValue(AppAtoms.isResponding);
+  const [isMessageDeleteMode, setIsMessageDeleteMode] = useAtom(AppAtoms.isMessageDeleteMode);
+  const [isChatsDeleteMode, setIsChatsDeleteMode] = useAtom(AppAtoms.isChatsDeleteMode);
+  const [chatidOnEditTitle, setChatidOnEditTitle] = useState("");
+  const setOpenDrawer = useSetAtom(AppAtoms.drawerOpen);
+  const router = useRouter();
+  const pathname = usePathname()
+  const [settings, setSettings] = useAtom(AppAtoms.settings);
+  const [_, setWebsocketMap] = useState({});
 
-  const userTextareaRef: any = useRef();
-  const systemTextareaRef: any = useRef();
-  const textareaContRef: any = useRef();
-  const autoScrollRef: any = useRef();
+  const userTextareaRef = useRef(null);
+  const systemTextareaRef = useRef(null);
+  const textareaContRef = useRef(null);
+  const autoScrollRef: { current: boolean | undefined } = useRef();
   autoScrollRef.current = autoScroll;
-  const chatidRef: any = useRef();
+  const chatidRef: { current: string | undefined } = useRef();
   chatidRef.current = chatid;
-  const systemInputRef: any = useRef();
+  const systemInputRef: { current: string | undefined } = useRef();
 
   const [temperatureGpt, setTemperatureGpt] = useState(1);
   const [topPGpt, setTopPGpt] = useState(1);
@@ -105,19 +114,20 @@ function PlayGround({ signOut }: any) {
   //const [topKClaude, setTopKClaude] = useState(250);
 
   systemInputRef.current = systemInput;
-  const setChatsEmptyMessages = (chatid: any) => {
-    setChats((chats: any) => {
+  const setChatsEmptyMessages = (chatid: string) => {
+    setChats((chats: Chats) => {
       chats[chatid] = [];
       return chats;
     });
   };
 
+
   const onMessage = async (event: any) => {
     if (!event.data || event.data.startsWith('{"message": "Endpoint request timed out"')) return; // } // httpリクエスト正常終了応答=event.dataブランク
-    const cleanupWebSocket: any = (dtm: any) => {
+    const cleanupWebSocket = (dtm: string | void) => {
       // 接続のクリーンナップ
       event.target.close();
-      setWebsocketMap((websocketMap: any) => {
+      setWebsocketMap((websocketMap: WebSocketMap) => {
         if (dtm && dtm in websocketMap) {
           delete websocketMap[dtm];
         }
@@ -131,12 +141,12 @@ function PlayGround({ signOut }: any) {
         console.error("想定外のレスポンス形式", event.data);
       } else if (content !== undefined) {
         // メッセージ追記
-        setChats((chats: any) => {
+        setChats((chats: Chats) => {
           const messages = chats[chatid];
-          const tgtAssMsg = messages.filter((msg: any) => msg.role === "assistant" && dtm === msg.dtm);
+          const tgtAssMsg = messages.filter((msg: Message) => msg.role === "assistant" && dtm === msg.dtm);
           if (!tgtAssMsg.length) return chats;
           const origContent = tgtAssMsg[0].content;
-          const updatedMsgs = messages.map((msg: any) =>
+          const updatedMsgs = messages.map((msg: Message) =>
             !(msg.role === "assistant" && dtm === msg.dtm)
               ? msg
               : { role: "assistant", model: msg.model, content: origContent === null ? content : origContent + content, dtm },
@@ -147,12 +157,12 @@ function PlayGround({ signOut }: any) {
         scrollToBottom();
       } else if (done !== undefined) {
         // メッセージ終了
-        setWaitingMap((waitingMap: any) => ({ ...waitingMap, [dtm]: 0 }));
+        setWaitingMap((waitingMap: WebSocketMap) => ({ ...waitingMap, [dtm]: 0 }));
         cleanupWebSocket(dtm);
         console.info(event.data); // 利用料等情報
-        setChats((chats: any) => {
+        setChats((chats: Chats) => {
           const messages = chats[chatid];
-          const updatedMsgs = messages.map((msg: any) => (![dtm, userDtm].includes(msg.dtm) ? msg : { ...msg, done }));
+          const updatedMsgs = messages.map((msg: Message) => (![dtm, userDtm].includes(msg.dtm) ? msg : { ...msg, done }));
           chats[chatid] = updatedMsgs;
           return chats;
         });
@@ -168,7 +178,7 @@ function PlayGround({ signOut }: any) {
           AnthropicAPIError: errorMessage,
         };
         // エラー系
-        setWaitingMap((waitingMap: any) => ({ ...waitingMap, [dtm]: 0 }));
+        setWaitingMap((waitingMap: WebSocketMap) => ({ ...waitingMap, [dtm]: 0 }));
         cleanupWebSocket(dtm);
         let chatErrorMessage: string;
         if (Object.keys(errorMessages).includes(errorType)) {
@@ -177,9 +187,9 @@ function PlayGround({ signOut }: any) {
           console.error("想定外のレスポンス形式", event.data);
           chatErrorMessage = "An error happend.";
         }
-        setChats((chats: any) => {
+        setChats((chats: Chats) => {
           const messages = chats[chatid];
-          const updatedMsgs = messages.map((msg: any) =>
+          const updatedMsgs = messages.map((msg: Message) =>
             dtm !== msg.dtm || msg.role === "user" ? msg : { ...msg, content: chatErrorMessage, isError: true },
           );
           chats[chatid] = updatedMsgs;
@@ -194,7 +204,7 @@ function PlayGround({ signOut }: any) {
     }
   };
 
-  const deleteChats = async (chatids: any) => {
+  const deleteChats = async (chatids: string[]) => {
     try {
       // チャット削除
       const query = `
@@ -210,7 +220,7 @@ function PlayGround({ signOut }: any) {
     }
   };
 
-  const saveChat = async (chatid: any, messages: any, sysMsg: any, title = null) => {
+  const saveChat = async (chatid: string, messages: Message[], sysMsg: string | undefined, title = "") => {
     if (!messages || messages.length === 0) return;
     try {
       // チャット保存
@@ -218,7 +228,7 @@ function PlayGround({ signOut }: any) {
             mutation($chatid:String!, $userid:String!, $messages:[MessageInput]!, $title:String, $sysMsg:String) {
               putChat(chatid: $chatid, userid: $userid, sysMsg: $sysMsg, title: $title, messages: $messages)
             }`;
-      const variables = { userid, chatid, messages: messages.filter((msg: any) => !msg.isError), sysMsg, title };
+      const variables = { userid, chatid, messages: messages.filter((msg: Message) => !msg.isError), sysMsg, title };
       await fetchAppSync({ query, variables });
       // チャット履歴リスト更新
       await getChatHistory(userid);
@@ -227,12 +237,12 @@ function PlayGround({ signOut }: any) {
     }
   };
 
-  const newChat: any = (e: any) => {
-    e && e.target.blur();
+  const newChat = (e: React.MouseEvent | void) => {
+    //e && e.target.blur();
     setIsMessageDeleteMode(false);
     const uuid = self.crypto.randomUUID();
     //history.pushState(null, null, `${url.origin}?c=${uuid}`);
-    if (router.pathname === "/") {
+    if (pathname === "/") {
       router.replace(`/?c=${uuid}`);
     } else {
       router.push(`/?c=${uuid}`);
@@ -242,11 +252,11 @@ function PlayGround({ signOut }: any) {
     return uuid;
   };
 
-  const fetchAppSync = async ({ query, variables }: any) => {
-    const session: any = await fetchAuthSession();
+  const fetchAppSync = async ({ query, variables }: { query: string, variables: {} }) => {
+    const session = await fetchAuthSession();
     const res = await fetch(apiUrls.appSync, {
       method: "POST",
-      headers: { Authorization: session.tokens.accessToken.toString() },
+      headers: session.tokens?.accessToken ? { Authorization: session.tokens.accessToken.toString() } : undefined,
       body: JSON.stringify({ query, variables }),
     });
     const resJson = await res.json();
@@ -257,7 +267,7 @@ function PlayGround({ signOut }: any) {
     return resJson?.data;
   };
 
-  const initSettings = async (userid: any) => {
+  const initSettings = async (userid: string | undefined) => {
     try {
       const query = `
         query($userid:String!) {
@@ -268,7 +278,7 @@ function PlayGround({ signOut }: any) {
       const settings = JSON.parse(data.getSettings);
       if (settings) {
         // DBに存在しない項目はstore.jsでの初期化の内容を優先
-        setSettings((orig: any) => ({
+        setSettings((orig) => ({
           modelSettings: { ...orig.modelSettings, ...settings.modelSettings },
           appSettings: { ...orig.appSettings, ...settings.appSettings },
         }));
@@ -277,7 +287,7 @@ function PlayGround({ signOut }: any) {
       console.error("getSettings() error", e);
     }
   };
-  const displayChat = async (userid: any, chatid: any, updateHistory = true) => {
+  const displayChat = async (userid: string | undefined, chatid: string, updateHistory = true) => {
     try {
       if (!chats[chatid]) {
         const query = `
@@ -290,7 +300,7 @@ function PlayGround({ signOut }: any) {
         }`;
         const variables = { userid, chatid };
         const data = await fetchAppSync({ query, variables });
-        setChats((chats: any) => {
+        setChats((chats: Chats) => {
           chats[chatid] = data?.getChatDetail?.chat ? data.getChatDetail.chat : [];
           return chats;
         });
@@ -303,7 +313,7 @@ function PlayGround({ signOut }: any) {
     }
   };
 
-  const getChatHistory = async (userid: any) => {
+  const getChatHistory = async (userid: String | undefined) => {
     try {
       const query = `
           query($userid:String!) {
@@ -313,10 +323,10 @@ function PlayGround({ signOut }: any) {
           }`;
       const variables = { userid };
       const data = await fetchAppSync({ query, variables });
-      setChatHistory((chatHistory: any) => {
+      setChatHistory((chatHistory: Message[]) => {
         // 応答中チャットとDBから取得したチャット履歴をマージ
-        const gotChatids = data.getChatIdList.map((chat: any) => chat.chatid);
-        const responding = chatHistory.filter((chat: any) => chat.title === "...waiting AI response..." && !gotChatids.includes(chat.chatid));
+        const gotChatids = data.getChatIdList.map((chat: Message) => chat.chatid);
+        const responding = chatHistory.filter((chat: Message) => chat.title === "...waiting AI response..." && !gotChatids.includes(chat.chatid));
         return data.getChatIdList ? [...responding, ...data.getChatIdList] : [...responding];
       });
     } catch (e) {
@@ -326,14 +336,14 @@ function PlayGround({ signOut }: any) {
 
   useEffect(() => {
     const initUserid = async () => {
-      const session: any = await fetchAuthSession();
+      const session = await fetchAuthSession();
 
       // ユーザー情報取得
-      const userid = session.tokens.accessToken.payload.sub;
+      const userid = session.tokens?.accessToken.payload.sub;
       setUserid(userid);
 
       // 管理者判定
-      setIsAdmin(session.tokens.accessToken.payload["cognito:groups"].includes("admin"));
+      setIsAdmin(session.tokens?.accessToken?.payload ? ["cognito:groups"].includes("admin") : false);
 
       // Chat情報初期化
       getChatHistory(userid);
@@ -357,7 +367,7 @@ function PlayGround({ signOut }: any) {
       window.addEventListener("popstate", () => {
         const url = new URL(window.location.href);
         if (url.pathname !== "/" || !url.searchParams.has("c")) return;
-        const gotChatId = getUrlChatid();
+        const gotChatId = getUrlChatid() + "";
         setChatid(gotChatId);
         displayChat(userid, gotChatId, false); // history.stateを更新しない
       });
@@ -365,12 +375,15 @@ function PlayGround({ signOut }: any) {
     initUserid();
 
     // スクロール操作でメッセージコンテナの下端から離れたらオートスクロールをオフに
-    const atBottom = (el: any) => el.scrollHeight - el.scrollTop === el.clientHeight;
+
+    const atBottom = (el: HTMLInputElement) => el.scrollHeight - el.scrollTop === el.clientHeight;
     document.querySelector("#messages-container")?.addEventListener("scroll", (e) => {
-      if (atBottom(e.target)) {
-        setAutoScroll(true);
-      } else {
-        setAutoScroll(false);
+      if (e.target instanceof HTMLInputElement) {
+        if (atBottom(e.target)) {
+          setAutoScroll(true);
+        } else {
+          setAutoScroll(false);
+        }
       }
     });
   }, []);
@@ -406,24 +419,24 @@ function PlayGround({ signOut }: any) {
       return;
     }
     // チャット履歴欄に追加
-    setChatHistory((chatHistory: any) => {
-      if (chatHistory.filter((chat: any) => chat.chatid === chatid).length > 0) {
+    setChatHistory((chatHistory: Message[]) => {
+      if (chatHistory.filter((chat: Message) => chat.chatid === chatid).length > 0) {
         return chatHistory;
       }
-      return [{ chatid, title: "...waiting AI response..." }, ...chatHistory];
+      return [{ chatid, title: "...waiting AI response...", }, ...chatHistory];
     });
     // ユーザーメッセージ追加
     const userDtm = new Date().toISOString();
-    setChats((chats: any) => {
+    setChats((chats: Chats) => {
       const messages = chats[chatid];
       chats[chatid] = [...messages, { role: "user", content: userInput, dtm: userDtm }];
       return chats;
     });
     // サブミット
-    const submit = async (model: any, userDtm: any) => {
+    const submit = async (model: string, userDtm: string) => {
       try {
         const dtm = new Date().toISOString();
-        setChats((chats: any) => {
+        setChats((chats: Chats) => {
           const messages = chats[chatid];
           chats[chatid] = [...messages, { role: "assistant", model: model, content: null, dtm }];
           return chats;
@@ -431,7 +444,7 @@ function PlayGround({ signOut }: any) {
         scrollToBottom();
 
         // メッセージ送信
-        const session: any = await fetchAuthSession();
+        const session = await fetchAuthSession();
         if (!session.tokens) {
           alert("セッションが終了しました。ログインしてください。");
           signOut();
@@ -448,7 +461,7 @@ function PlayGround({ signOut }: any) {
           temperatureClaude: temperatureClaude,
           // topPClaude: topPClaude,
           // topKClaude: topKClaude,
-          messages: chats[chatid].map((msg: any) => ({ role: msg.role, dtm: msg.dtm, model: msg.model, content: msg.content, done: msg.done })),
+          messages: chats[chatid].map((msg: Message) => ({ role: msg.role, dtm: msg.dtm, model: msg.model, content: msg.content, done: msg.done })),
           model: model,
           chatid,
           dtm,
@@ -456,7 +469,7 @@ function PlayGround({ signOut }: any) {
           jwt,
         });
         const websocket = new WebSocket(apiUrls.wss);
-        setWebsocketMap((map: any) => {
+        setWebsocketMap((map: WebSocketMap) => {
           map[dtm] = websocket;
           return map;
         });
@@ -479,7 +492,7 @@ function PlayGround({ signOut }: any) {
       }
     }
   };
-  const clickChatHistoryLine = (chatid: any) => async () => {
+  const clickChatHistoryLine = (chatid: string) => async () => {
     setIsMessageDeleteMode(false);
     displayChat(userid, chatid);
   };
@@ -487,9 +500,9 @@ function PlayGround({ signOut }: any) {
     const content = sidebarContent === "history" ? "edit" : "history";
     setSidebarContent(content);
   };
-  const ChatTitleEdit = ({ chat }: any) => {
+  const ChatTitleEdit = ({ chat }: { chat: Message }) => {
     const { chatid } = chat;
-    const origTitle = chat.title;
+    const origTitle = chat.title + "";
     const [title, setTitle] = useState(origTitle);
     const inputRef: any = useRef();
 
@@ -498,7 +511,7 @@ function PlayGround({ signOut }: any) {
       inputRef.current.setSelectionRange(origTitle.length, origTitle.length);
     }, []);
 
-    const onChange = ({ target }: any) => setTitle(target.value);
+    const onChange = ({ target }: { target: HTMLInputElement }) => setTitle(target.value);
     const reset = () => {
       setChatidOnEditTitle("");
     };
@@ -516,7 +529,7 @@ function PlayGround({ signOut }: any) {
             reset();
           }
           if (e.key === "Enter") {
-            await saveChat(chatid, chats[chatid], systemInput, title);
+            await saveChat(chatid + "", chats[chatid + ""], systemInput, title);
             reset();
           }
         }}
@@ -589,7 +602,7 @@ function PlayGround({ signOut }: any) {
                 className="absolute top-0 right-0"
                 onClick={() => {
                   setIsChatsDeleteMode(true);
-                  setChatsOnDeleteMode(chatHistory.map((chat: any) => JSON.parse(JSON.stringify(chat))));
+                  setChatsOnDeleteMode(chatHistory.map((chat: Message) => JSON.parse(JSON.stringify(chat))));
                   setChatsidsForDelete([]);
                 }}
               />
@@ -625,15 +638,15 @@ function PlayGround({ signOut }: any) {
               </>
             )}
             <div className="overflow-x-hidden overflow-y-auto">
-              {chatsOnDisplay.map((chat: any, index: any) => (
+              {chatsOnDisplay.map((chat: Message, index: number) => (
                 <div key={index} className="relative group">
                   {isChatsDeleteMode ? (
                     <MaterialButton
                       name="delete"
                       className="absolute top-0 right-0 "
                       onClick={() => {
-                        setChatsOnDeleteMode((chats: any) => chats.filter((_chat: any) => _chat.chatid !== chat.chatid));
-                        setChatsidsForDelete(chatidsForDelete.concat([chat.chatid]));
+                        setChatsOnDeleteMode((chats) => chats.filter((_chat: Message) => _chat.chatid !== chat.chatid));
+                        setChatsidsForDelete(chatidsForDelete.concat([chat.chatid + ""]));
                       }}
                       blur
                     />
@@ -644,7 +657,7 @@ function PlayGround({ signOut }: any) {
                       className="absolute top-0 right-0 invisible"
                       groupHoverVisible
                       onClick={() => {
-                        setChatidOnEditTitle(chat.chatid);
+                        setChatidOnEditTitle(chat.chatid + "");
                       }}
                       blur
                     />
@@ -653,7 +666,7 @@ function PlayGround({ signOut }: any) {
                     <div
                       key={index}
                       className={`pl-3 p-1 cursor-pointer whitespace-nowrap ${chat.chatid === chatid ? "bg-gray-200" : "hover:bg-gray-100"}`}
-                      onClick={clickChatHistoryLine(chat.chatid)}
+                      onClick={clickChatHistoryLine(chat.chatid + "")}
                     >
                       <span className="text-sm">{chat.title}</span>
                     </div>
@@ -668,7 +681,7 @@ function PlayGround({ signOut }: any) {
         {/* USER・ASSISTANTメッセージエリア */}
         <div id="main-area" className="flex w-3/4">
           <div id="messages-container" className="frex flex-col flex-grow overflow-y-auto">
-            {msgsOnDisplay ? msgsOnDisplay.map((message: any, index: any) => <UserAssistant message={message} key={index} />) : null}
+            {msgsOnDisplay ? msgsOnDisplay.map((message: Message, index: number) => <UserAssistant message={message} key={index} />) : null}
             <div className="ml-2 flex flex-row" ref={textareaContRef}>
               <textarea
                 ref={userTextareaRef}
@@ -695,7 +708,7 @@ function PlayGround({ signOut }: any) {
                 name="block"
                 onClick={async () => {
                   // 全websocket接続を切断
-                  setWebsocketMap((websocketMap: any) => {
+                  setWebsocketMap((websocketMap: WebSocketMap) => {
                     Object.keys(websocketMap).map((dtm) => {
                       websocketMap[dtm].close();
                       delete websocketMap[dtm];
@@ -705,9 +718,9 @@ function PlayGround({ signOut }: any) {
                   // 応答中状態を破棄
                   setWaitingMap({});
                   // 中断メッセージの表示(少しでも応答メッセージがあれば上書きはしない)
-                  setChats((chats: any) => {
+                  setChats((chats: Chats) => {
                     const messages = chats[chatid];
-                    const updatedMsgs = messages.map((msg: any) =>
+                    const updatedMsgs = messages.map((msg) =>
                       msg.role === "user" || msg.content ? msg : { ...msg, content: "応答の受信が中断されました。", isError: true },
                     );
                     chats[chatid] = updatedMsgs;
@@ -725,7 +738,7 @@ function PlayGround({ signOut }: any) {
                     if (chats[chatid].length === 0) return;
                     if (settings.appSettings.copyChatOnMessageDeleteMode) {
                       // チャットメッージを削除モードに入る際にメッセージをコピーする
-                      const newTitle: any = "copy_" + chatHistory.filter((chat: any) => chat.chatid === chatid)[0].title;
+                      const newTitle = "copy_" + chatHistory.filter((chat: Message) => chat.chatid === chatid)[0].title;
                       const uuid = self.crypto.randomUUID();
                       await saveChat(uuid, chats[chatid], systemInput, newTitle);
                     }
@@ -750,7 +763,7 @@ function PlayGround({ signOut }: any) {
                 <MaterialButton
                   name="done"
                   onClick={async () => {
-                    setChats((chats: any) => {
+                    setChats((chats: Chats) => {
                       chats[chatid] = messagesOnDeleteMode;
                       return chats;
                     });

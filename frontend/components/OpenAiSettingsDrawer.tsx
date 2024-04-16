@@ -26,7 +26,7 @@ const OpenAiSettingsDrawer: React.FC<Props> = ({
   setPresencePenaltyGpt,
 }) => {
   const [open, setOpen] = useAtom(AppAtoms.drawerOpen);
-  const closeDrawer = () => setOpen(false);
+  const closeDrawer = () => setOpen(null);
   const [, setUserid] = useState<string | null>();
 
   useEffect(() => {

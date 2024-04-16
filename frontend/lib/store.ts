@@ -1,6 +1,6 @@
 import { atom } from "jotai";
 
-export const modelsGens: any = {
+export const modelsGens: { [key: string]: string } = {
   "gpt-3.5-turbo-1106": "gpt-3.5-turbo",
   "gpt-3.5-turbo-0125": "gpt-3.5-turbo",
   "gpt-4-1106-preview": "gpt-4-turbo",
@@ -14,8 +14,19 @@ export const modelsGens: any = {
   "claude-3-opus-20240229": "claude-3-opus",
 };
 
+export interface Message {
+  chatid?: string;
+  title?: string;
+  content?: string | null;
+  isError?: boolean;
+  role?: string;
+  dtm?: string;
+  model?: string;
+  done?: boolean
+}
+
 // セレクトボックス様モデルリスト
-export const models: any = { ...modelsGens };
+export const models: { [key: string]: string } = { ...modelsGens };
 // 古いモデルを消す
 delete models["anthropic.claude-v2"];
 delete models["gpt-3.5-turbo-1106"];
@@ -25,24 +36,24 @@ delete models["anthropic.claude-v2"];
 delete models["anthropic.claude-v2:1"];
 delete models["anthropic.claude-3-sonnet-20240229-v1:0"];
 
-const initStatus: any = {};
+const initStatus: { [key: string]: boolean } = {};
 Object.keys(models).map((model) => (initStatus[model] = true));
 
-const submissionStatus: any = atom(initStatus);
-//const selectedModel: any = atom("gpt-3.5-turbo-0125");
-const selectedModel: any = atom("claude-3-haiku-20240307");
-const isParallel: any = atom(false);
-const waitingMap: any = atom({});
-const isResponding: any = atom((get) => Object.values(get(waitingMap) as Array<number>).reduce((sum, element) => sum + element, 0) > 0);
-const isMessageDeleteMode: any = atom(false);
-const isChatsDeleteMode: any = atom(false);
-const messagesOnDeleteMode: any = atom([]);
-const chats: any = atom({});
-const chatHistory: any = atom([]);
-const chatid: any = atom("");
-const systemInput: any = atom("");
-const drawerOpen: any = atom(null);
-const settings: any = atom({
+const submissionStatus = atom(initStatus);
+//const selectedModel = atom("gpt-3.5-turbo-0125");
+const selectedModel = atom("claude-3-haiku-20240307");
+const isParallel = atom(false);
+const waitingMap = atom({});
+const isResponding = atom((get) => Object.values(get(waitingMap) as Array<number>).reduce((sum, element) => sum + element, 0) > 0);
+const isMessageDeleteMode = atom(false);
+const isChatsDeleteMode = atom(false);
+const messagesOnDeleteMode = atom([]);
+const chats = atom({});
+const chatHistory = atom<Message[]>([]);
+const chatid = atom("");
+const systemInput = atom("");
+const drawerOpen = atom<string | boolean | null>(null);
+const settings = atom({
   modelSettings: {},
   appSettings: {
     copyChatOnMessageDeleteMode: false,

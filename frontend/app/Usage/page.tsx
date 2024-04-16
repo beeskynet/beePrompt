@@ -5,12 +5,13 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, Toolti
 import { Typography } from "@material-tailwind/react";
 import { useRouter } from "next/navigation";
 import { apiUrls } from "lib/environments";
+import { NextPage } from "next";
 
 const skyBlue = "#a0d8ef";
 const liteGray = "#EEEEEE";
 const MONTHLY_ADDITIONAL_POINTS = 500;
 
-const BalancePieChart = ({ remainingPoints, monthlyAdditonalPoints }: any) => {
+const BalancePieChart = ({ remainingPoints, monthlyAdditonalPoints }: { remainingPoints: number, monthlyAdditonalPoints: number }) => {
   // カラーパターン
   const COLORS = [skyBlue, liteGray];
   const data = [
@@ -33,8 +34,15 @@ const BalancePieChart = ({ remainingPoints, monthlyAdditonalPoints }: any) => {
   );
 };
 
-function UsageBarChart({ data }: any) {
-  function fillMissingDays(data: any) {
+interface UsageBarChartProps {
+  data: {
+    day: string;
+    usagePoint: number
+  }[] | undefined
+}
+
+const UsageBarChart: NextPage<UsageBarChartProps> = ({ data }) => {
+  function fillMissingDays(data: { day: string, usagePoint: number }[] | undefined) {
     const today = new Date();
     const startDay = new Date(today);
     startDay.setDate(today.getDate() - 30);
@@ -43,7 +51,7 @@ function UsageBarChart({ data }: any) {
     let currentDay = startDay;
     while (currentDay <= today) {
       const dayString = currentDay.toISOString().slice(0, 10);
-      const existing = data.filter((d: any) => d.day === dayString)[0];
+      const existing = data?.filter((d) => d.day === dayString)[0];
       if (existing) {
         filledData.push(existing);
       } else {
@@ -69,17 +77,20 @@ function UsageBarChart({ data }: any) {
   );
 }
 function Usage() {
-  const [userid, setUserid] = useState();
-  const [smrDaily, setSmrDaily] = useState([]);
+  const [userid, setUserid] = useState<string | undefined>();
+  const [smrDaily, setSmrDaily] = useState<{ day: string, usagePoint: number }[]>([]);
   const [smrMonthly, setSmrMonthly] = useState([]);
   const [balance, setBalance] = useState(0);
   const router = useRouter();
+  interface Dict<T> {
+    [key: string]: T[];
+  }
 
-  const fetchAppSync = async ({ query, variables }: any) => {
-    const session: any = await fetchAuthSession();
+  const fetchAppSync = async ({ query, variables }: { query: string, variables: {} }) => {
+    const session = await fetchAuthSession();
     const res = await fetch(apiUrls.appSync, {
       method: "POST",
-      headers: { Authorization: session.tokens.accessToken.toString() },
+      headers: session.tokens?.accessToken ? { Authorization: session.tokens.accessToken.toString() } : undefined,
       body: JSON.stringify({ query, variables }),
     });
     const resJson = await res.json();
@@ -90,9 +101,9 @@ function Usage() {
   };
 
   const init = async () => {
-    const session: any = await fetchAuthSession();
+    const session = await fetchAuthSession();
     // ユーザー情報取得
-    const userid = session.tokens.accessToken.payload.sub;
+    const userid = session.tokens?.accessToken.payload.sub;
     setUserid(userid);
 
     //
@@ -123,8 +134,8 @@ function Usage() {
       const res = await fetchAppSync({ query, variables });
 
       // 集計
-      const sum = (nums: any) => nums.reduce((sum: any, num: any) => sum + num, 0);
-      setBalance(sum(res.getBalances.map((balance: any) => balance.balance)));
+      const sum = (nums: number[]) => nums.reduce((sum: number, num: number) => sum + num, 0);
+      setBalance(sum(res.getBalances.map((balance: Dict<string>) => balance.balance)));
     };
     getBalances();
   };

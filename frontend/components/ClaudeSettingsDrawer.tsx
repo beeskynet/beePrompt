@@ -16,16 +16,6 @@ const ClaudeSettingsDrawer: React.FC<Props> = ({ temperatureClaude, setTemperatu
     const value = e.target.valueAsNumber;
     setTemperatureClaude(value);
   };
-  /*
-  const handleChangeTopP = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.valueAsNumber;
-    setTopPClaude(value);
-  };
-  const handleChangeTopK = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.valueAsNumber;
-    setTopKClaude(value);
-  };
-   */
   const setDefaultParameter = () => {
     setTemperatureClaude(1);
     //setTopPClaude(0.999);

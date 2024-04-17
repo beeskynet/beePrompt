@@ -1,6 +1,17 @@
 import React, { useState } from "react";
 
-function MaterialButton({ name, onClick, groupHoverVisible, disabled, size, className, blur, blurColorRga, ...props }: any) {
+interface MaterialButtonProps {
+  name?: string;
+  onClick?: () => void;
+  groupHoverVisible?: string | boolean;
+  disabled?: boolean;
+  size?: number;
+  className?: string;
+  blur?: boolean;
+  blurColorRga?: string;
+}
+
+function MaterialButton({ name, onClick, groupHoverVisible, disabled, size, className, blur, blurColorRga, ...props }: MaterialButtonProps) {
   const opticalSize = size ? size : 24;
   const [isBlinking, setIsBlinking] = useState(false);
 
@@ -19,7 +30,7 @@ function MaterialButton({ name, onClick, groupHoverVisible, disabled, size, clas
     // `group-hover/${groupHoverVisible}:visible`とすると動かない
   }
 
-  let blurStyle: any = {};
+  let blurStyle: { background: string } = { background: "" };
   if (blur) {
     blurColorRga = blurColorRga ? blurColorRga : "255, 255, 255";
     blurStyle.background = `
@@ -53,7 +64,7 @@ function MaterialButton({ name, onClick, groupHoverVisible, disabled, size, clas
         onClick={_onClick}
         style={{
           fontSize: `${opticalSize}px`,
-          color: !disabled ? null : "rgba(0, 0, 0, 0.26)",
+          color: !disabled ? undefined : "rgba(0, 0, 0, 0.26)",
           fontVariationSettings: `'opsz' ${opticalSize}`,
         }}
       >

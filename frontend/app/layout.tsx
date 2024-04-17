@@ -2,7 +2,11 @@ import "styles/globals.css";
 import Auth from "lib/auth";
 import { RouteChangeListener } from "components/RouteChangeListener";
 
-export default function RootLayout({ children }: any) {
+interface Props {
+  children?: string
+}
+
+export default function RootLayout({ children, ...props }: Props) {
   return (
     <html lang="en">
       <RouteChangeListener />

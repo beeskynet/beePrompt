@@ -17,7 +17,7 @@ const amplifyConfig = {
 };
 Amplify.configure(amplifyConfig);
 
-function Auth({ children }: any) {
+function Auth({ children }: { children: React.ReactNode }) {
   return children;
 }
 export default withAuthenticator(Auth, { hideSignUp: true });

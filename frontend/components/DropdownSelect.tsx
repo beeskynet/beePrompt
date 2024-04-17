@@ -6,15 +6,16 @@ import { AppAtoms, models } from "lib/store";
 import { useAtom } from "jotai";
 
 function DropdownSelect() {
-  const [isActive, setIsActive]: any = useState(false);
-  const dropdownRef: any = useRef(null);
-  const [submissionStatus, setSubmissionStatus]: any = useAtom(AppAtoms.submissionStatus);
-  const [selectedModel, setSelectedModel]: any = useAtom(AppAtoms.selectedModel);
-  const [isParallel, setIsParallel]: any = useAtom(AppAtoms.isParallel);
+  const [isActive, setIsActive] = useState(false);
+  const dropdownRef = useRef<HTMLInputElement>(null);
+  const [submissionStatus, setSubmissionStatus] = useAtom(AppAtoms.submissionStatus);
+  const [selectedModel, setSelectedModel] = useAtom(AppAtoms.selectedModel);
+  const [isParallel, setIsParallel] = useAtom(AppAtoms.isParallel);
 
   useEffect(() => {
-    const handleClickOutside = (event: any) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (dropdownRef.current && !dropdownRef.current.contains(target)) {
         setIsActive(false);
       }
     };
@@ -29,7 +30,7 @@ function DropdownSelect() {
     setIsActive(!isActive);
   };
 
-  const selectOption = (key: any) => {
+  const selectOption = (key: string) => {
     if (isParallel) {
       setSubmissionStatus({ ...submissionStatus, [key]: !submissionStatus[key] });
     } else {

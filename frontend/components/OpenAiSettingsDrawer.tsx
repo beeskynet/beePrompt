@@ -27,6 +27,7 @@ const OpenAiSettingsDrawer: React.FC<Props> = ({
   const [open, setOpen] = useAtom(AppAtoms.drawerOpen);
   const closeDrawer = () => setOpen(false);
 
+
   const handleChangeTemperature = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.valueAsNumber;
     setTemperatureGpt(value);

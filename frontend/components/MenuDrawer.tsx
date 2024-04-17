@@ -3,15 +3,14 @@ import React, { useState, useEffect } from "react";
 import { Drawer, List, ListItem } from "@material-tailwind/react";
 import { AppAtoms } from "lib/store";
 import { useAtom } from "jotai";
-import { fetchAuthSession } from "aws-amplify/auth";
+import { fetchAuthSession, signOut } from "aws-amplify/auth";
 import { withAuthenticator } from "@aws-amplify/ui-react";
 import { useRouter } from "next/navigation";
 
-type Props = { signOut: any };
-const MenuDrawer: React.FC<Props> = ({ signOut }) => {
+const MenuDrawer: React.FC = () => {
   const [open, setOpen] = useAtom(AppAtoms.drawerOpen);
   const closeDrawer = () => setOpen(false);
-  const [isAdmin, setIsAdmin]: any = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
 
   useEffect(() => {

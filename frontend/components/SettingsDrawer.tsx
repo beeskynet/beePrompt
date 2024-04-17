@@ -5,16 +5,35 @@ import { useAtom } from "jotai";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { withAuthenticator } from "@aws-amplify/ui-react";
 
-function SettingsDrawer() {
-  const [open, setOpen]: any = useAtom(AppAtoms.drawerOpen);
-  const closeDrawer: any = () => setOpen(false);
-  const [settings, setSettings]: any = useAtom(AppAtoms.settings);
+interface variables {
+  userid?: string;
+  settings?: string;
+}
 
-  const fetchAppSync = async ({ query, variables }: any) => {
-    const session: any = await fetchAuthSession();
+function SettingsDrawer() {
+
+  const [open, setOpen] = useAtom(AppAtoms.drawerOpen);
+  const closeDrawer = () => setOpen(null);
+  const [settings, setSettings] = useAtom(AppAtoms.settings);
+  /*
+    const [userid, setUserid] = useState<string | undefined>();
+  
+    useEffect(() => {
+      const initUserid = async () => {
+        const session = await fetchAuthSession();
+  
+        // ユーザー情報取得
+        const userid = session.tokens?.accessToken.payload.sub;
+        setUserid(userid);
+      };
+      initUserid();
+    }, []);
+  */
+  const fetchAppSync = async ({ query, variables }: { query: string, variables: variables }) => {
+    const session = await fetchAuthSession();
     const res = await fetch(apiUrls.appSync, {
       method: "POST",
-      headers: { Authorization: session.tokens.accessToken.toString() },
+      headers: session.tokens?.accessToken ? { Authorization: session.tokens.accessToken.toString() } : undefined,
       body: JSON.stringify({ query, variables }),
     });
     const resJson = await res.json();
@@ -23,7 +42,9 @@ function SettingsDrawer() {
     }
     return resJson?.data;
   };
-  const saveSettings = async (settings: any) => {
+
+  const saveSettings = async (settings: string) => {
+
     try {
       // チャット保存
       const query = `

@@ -1,8 +1,8 @@
 "use client";
-import React, { useState, useRef, useEffect, ChangeEventHandler } from "react";
+import React, { useState, useRef, useEffect, MutableRefObject } from "react";
 import UserAssistant from "./UserAssistant";
 import DropdownSelect from "./DropdownSelect";
-import { Button, Menu, MenuHandler, MenuList, MenuItem, Input } from "@material-tailwind/react";
+import { Button, Input } from "@material-tailwind/react";
 import { fetchAuthSession, signOut } from "aws-amplify/auth";
 import { useRouter, usePathname } from "next/navigation";
 import { withAuthenticator } from "@aws-amplify/ui-react";
@@ -17,16 +17,19 @@ import MenuDrawer from "./MenuDrawer";
 import useOnWindowRefocus from "lib/useOnWindowReforcus";
 
 interface Chats {
-  [key: string]: Message[]
+  [key: string]: Message[];
 }
 
 interface WebSocketMap {
-  [key: string]: WebSocket
+  [key: string]: WebSocket;
 }
 
+interface Dict<T> {
+  [key: string]: T;
+}
 let chats: Chats = {};
 let chatid = "";
-function PlayGround({ signOut }: any) {
+function PlayGround() {
   useOnWindowRefocus(async () => {
     const session = await fetchAuthSession();
     if (!session.tokens) {
@@ -54,7 +57,7 @@ function PlayGround({ signOut }: any) {
   };
 
   const [chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
-  const [userid, setUserid] = useState<string | undefined>("");
+  const [userid, _setUserid] = useState<string | undefined>("");
   const [isAdmin, setIsAdmin] = useState(false);
   const selectedModel = useAtomValue(AppAtoms.selectedModel);
   const isParallel = useAtomValue(AppAtoms.isParallel);
@@ -67,12 +70,12 @@ function PlayGround({ signOut }: any) {
   const [chatHistoryLastEvaluatedKey, setChatHistoryLastEvaluatedKey] = useState("");
   const setOpenDrawer = useSetAtom(AppAtoms.drawerOpen);
   const router = useRouter();
-  const pathname = usePathname()
+  const pathname = usePathname();
   const [settings, setSettings] = useAtom(AppAtoms.settings);
   const [_, setWebsocketMap] = useState({});
 
-  const userTextareaRef = useRef(null);
-  const systemTextareaRef = useRef(null);
+  const userTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const systemTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const textareaContRef = useRef(null);
   const autoScrollRef: { current: boolean | undefined } = useRef();
   autoScrollRef.current = autoScroll;
@@ -96,13 +99,11 @@ function PlayGround({ signOut }: any) {
       return chats;
     });
   };
-
-
-  const onMessage = async (event: any) => {
+  const onMessage = async (event: MessageEvent) => {
     if (!event.data || event.data.startsWith('{"message": "Endpoint request timed out"')) return; // } // httpリクエスト正常終了応答=event.dataブランク
     const cleanupWebSocket = (dtm: string | void) => {
       // 接続のクリーンナップ
-      event.target.close();
+      if (event.target && event.target instanceof WebSocket) event.target.close();
       setWebsocketMap((websocketMap: WebSocketMap) => {
         if (dtm && dtm in websocketMap) {
           delete websocketMap[dtm];
@@ -112,7 +113,7 @@ function PlayGround({ signOut }: any) {
     };
 
     try {
-      const { content, dtm, chatid, userDtm, done, error, errorType, errorMessage } = JSON.parse(event.data);
+      const { content, dtm, chatid, userDtm, done, errorType, errorMessage } = JSON.parse(event.data);
       if (dtm === undefined) {
         console.error("想定外のレスポンス形式", event.data);
       } else if (content !== undefined) {
@@ -230,7 +231,13 @@ function PlayGround({ signOut }: any) {
     return uuid;
   };
 
-  const fetchAppSync = async ({ query, variables }: any) => {
+  const fetchAppSync = async ({
+    query,
+    variables,
+  }: {
+    query: string;
+    variables?: Dict<string | number | boolean | Message[] | string[] | null | undefined>;
+  }) => {
     const session = await fetchAuthSession();
     const res = await fetch(apiUrls.appSync, {
       method: "POST",
@@ -390,8 +397,9 @@ function PlayGround({ signOut }: any) {
   // useEffect() [userInput]
   useEffect(() => {
     // テキストエリアの高さを自動調整する
-    const autoHight = (ref: any) => {
+    const autoHight = (ref: MutableRefObject<HTMLTextAreaElement | null>) => {
       const textarea = ref.current;
+      if (!textarea) return;
       textarea.style.height = "auto";
       textarea.style.height = `${textarea.scrollHeight + 5}px`;
     };
@@ -422,7 +430,7 @@ function PlayGround({ signOut }: any) {
       if (chatHistory.filter((chat: Message) => chat.chatid === chatid).length > 0) {
         return chatHistory;
       }
-      return [{ chatid, title: "...waiting AI response...", }, ...chatHistory];
+      return [{ chatid, title: "...waiting AI response..." }, ...chatHistory];
     });
     // ユーザーメッセージ追加
     const userDtm = new Date().toISOString();
@@ -474,10 +482,10 @@ function PlayGround({ signOut }: any) {
         });
         websocket.onmessage = onMessage;
         websocket.onopen = () => websocket.send(prm);
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Consider implementing your own error handling logic here
         console.error("submit error", error);
-        alert(error.message);
+        if (error instanceof Error) alert(error.message);
       }
     };
     if (!isParallel) {
@@ -503,9 +511,10 @@ function PlayGround({ signOut }: any) {
     const { chatid } = chat;
     const origTitle = chat.title + "";
     const [title, setTitle] = useState(origTitle);
-    const inputRef: any = useRef();
+    const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
+      if (!inputRef.current) return;
       inputRef.current.focus();
       inputRef.current.setSelectionRange(origTitle.length, origTitle.length);
     }, []);
@@ -566,7 +575,7 @@ function PlayGround({ signOut }: any) {
           setPresencePenaltyGpt={setPresencePenaltyGpt}
         />
         <ClaudeSettingsDrawer temperatureClaude={temperatureClaude} setTemperatureClaude={setTemperatureClaude} />
-        <MenuDrawer signOut={signOut} />
+        <MenuDrawer />
       </div>
 
       {/* メインエリア */}

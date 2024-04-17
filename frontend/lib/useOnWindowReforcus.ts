@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 
-//Callback = () => void;
-
-//export default function useOnWindowRefocus(callback: Callback): void {
-export default function useOnWindowRefocus(callback: any) {
+export default function useOnWindowRefocus(callback: () => void) {
   const isFocusOutOnce = useRef(false);
 
   const handleFocus = useCallback(() => {

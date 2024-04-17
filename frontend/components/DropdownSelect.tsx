@@ -13,8 +13,9 @@ function DropdownSelect() {
   const [isParallel, setIsParallel] = useAtom(AppAtoms.isParallel);
 
   useEffect(() => {
-    const handleClickOutside = (event: any) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (dropdownRef.current && !dropdownRef.current.contains(target)) {
         setIsActive(false);
       }
     };

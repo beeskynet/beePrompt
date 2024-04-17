@@ -9,11 +9,9 @@ import remarkGfm from "remark-gfm";
 interface Props {
   node?: HTMLElement;
   children?: string | null;
-  //inline?: string;
   className?: string;
 }
-
-function Markdown({ children, className, ...props }: Props) {
+function Markdown({ children, className }: Props) {
   const onClick = (text: string) => () => {
     navigator.clipboard.writeText(text);
   };
@@ -24,7 +22,8 @@ function Markdown({ children, className, ...props }: Props) {
       rehypePlugins={[rehypeRaw]}
       remarkPlugins={[remarkGfm]}
       components={{
-        code({ node, className, children, ...props }: any) {
+        code({ node, className, children, style: _rm1, ref: _rm2, ...props }) {
+          // styleとrefの型がSyntaxHighlighterとReactMarkdownで合ってない
           const match = /language-(\w+)/.exec(className || "");
           // inlineが常にundefinedになるので、改行で判定
           return String(children).indexOf("\n") !== -1 || match ? (
@@ -38,7 +37,7 @@ function Markdown({ children, className, ...props }: Props) {
                 blurColorRga="253, 246, 227"
               />
               <SyntaxHighlighter style={solarizedlight} language={match ? match[1] : ""} PreTag="div" {...props}>
-                {children}
+                {Array.isArray(children) ? children : [children]}
               </SyntaxHighlighter>
             </div>
           ) : (

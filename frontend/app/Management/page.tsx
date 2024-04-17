@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 function ManBalance() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
-  const [, setUserid] = useState<string | undefined>();
   const [users, setUsers] = useState<User[]>([]);
   const [checked, setChecked] = useState<Dict<boolean>>({});
   const [point, setPoint] = useState<number | string>(500);
@@ -40,11 +39,6 @@ function ManBalance() {
   };
 
   const init = async () => {
-    const session = await fetchAuthSession();
-    // ユーザー情報取得
-    const userid = session.tokens?.accessToken.payload.sub;
-    setUserid(userid);
-
     const getPrivilegedUsers = async () => {
       const query = `
           query {

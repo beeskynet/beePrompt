@@ -33,8 +33,8 @@ def put_chat_to_db(userid, chatid, messages, title=None, sys_msg=None):
 def lambda_handler(event, context):
     print(event)
     args = event["arguments"]
-    userid = args["userid"]
     chatid = args["chatid"]
+    userid = event["identity"]["claims"]["sub"]
     messages = args["messages"]
     title = args["title"] if "sysMsg" in args else None
     sys_msg = args["sysMsg"] if "sysMsg" in args else None

@@ -5,6 +5,7 @@ export const modelsGens: { [key: string]: string } = {
   "gpt-3.5-turbo-0125": "gpt-3.5-turbo",
   "gpt-4-1106-preview": "gpt-4-turbo",
   "gpt-4-0125-preview": "gpt-4-turbo",
+  "gpt-4-turbo-2024-04-09": "gpt-4-turbo",
   "anthropic.claude-instant-v1": "claude-instant-v1",
   "anthropic.claude-v2": "claude-v2",
   "anthropic.claude-v2:1": "claude-v2.1",
@@ -31,6 +32,7 @@ export const models: { [key: string]: string } = { ...modelsGens };
 delete models["anthropic.claude-v2"];
 delete models["gpt-3.5-turbo-1106"];
 delete models["gpt-4-1106-preview"];
+delete models["gpt-4-0125-preview"];
 delete models["anthropic.claude-instant-v1"];
 delete models["anthropic.claude-v2"];
 delete models["anthropic.claude-v2:1"];

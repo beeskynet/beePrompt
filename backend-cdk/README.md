@@ -131,7 +131,7 @@ adminユーザー作成
 - Windows
     ```bat
     > cd tools
-    > ./create_admin_user.bat
+    > create_admin_user.bat
     > cd ..
     ```
 

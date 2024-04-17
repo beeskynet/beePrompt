@@ -13,6 +13,7 @@ import MaterialButton from "./MaterialButton";
 import SettingsDrawer from "./SettingsDrawer";
 import OpenAiSettingsDrawer from "./OpenAiSettingsDrawer";
 import ClaudeSettingsDrawer from "./ClaudeSettingsDrawer";
+import MenuDrawer from "./MenuDrawer";
 import useOnWindowRefocus from "lib/useOnWindowReforcus";
 
 interface Chats {
@@ -33,34 +34,6 @@ function PlayGround({ signOut }: any) {
       signOut();
     }
   });
-  const AccountButton = () => {
-    const router = useRouter();
-    const menuItemClassName = "p-3 text-black";
-    return (
-      <div className="flex">
-        <Menu placement="bottom-end">
-          <MenuHandler>
-            <div>
-              <MaterialButton name="person" size={32} />
-            </div>
-          </MenuHandler>
-          <MenuList className="p-0">
-            {isAdmin ? (
-              <MenuItem className={menuItemClassName} onClick={() => router.push("/Management")}>
-                Management
-              </MenuItem>
-            ) : null}
-            <MenuItem className={menuItemClassName} onClick={() => router.push("/Usage")}>
-              Usage
-            </MenuItem>
-            <MenuItem className={menuItemClassName} onClick={signOut}>
-              Sign Out
-            </MenuItem>
-          </MenuList>
-        </Menu>
-      </div>
-    );
-  };
   const [userInput, setUserInput] = useState("");
   const [_chats, _setChats] = useAtom(AppAtoms.chats);
   const setChats = (func: Function) => {
@@ -79,6 +52,7 @@ function PlayGround({ signOut }: any) {
     chatid = newChatid;
     _setChatid(newChatid);
   };
+
   const [chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
   const [userid, setUserid] = useState<string | undefined>("");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -90,6 +64,7 @@ function PlayGround({ signOut }: any) {
   const [isMessageDeleteMode, setIsMessageDeleteMode] = useAtom(AppAtoms.isMessageDeleteMode);
   const [isChatsDeleteMode, setIsChatsDeleteMode] = useAtom(AppAtoms.isChatsDeleteMode);
   const [chatidOnEditTitle, setChatidOnEditTitle] = useState("");
+  const [chatHistoryLastEvaluatedKey, setChatHistoryLastEvaluatedKey] = useState("");
   const setOpenDrawer = useSetAtom(AppAtoms.drawerOpen);
   const router = useRouter();
   const pathname = usePathname()
@@ -112,6 +87,7 @@ function PlayGround({ signOut }: any) {
   const [temperatureClaude, setTemperatureClaude] = useState(1);
   //const [topPClaude, setTopPClaude] = useState(0.999);
   //const [topKClaude, setTopKClaude] = useState(250);
+  const container = useRef<HTMLDivElement | null>(null);
 
   systemInputRef.current = systemInput;
   const setChatsEmptyMessages = (chatid: string) => {
@@ -208,13 +184,13 @@ function PlayGround({ signOut }: any) {
     try {
       // チャット削除
       const query = `
-        mutation($chatids:[String]!, $userid:String!) {
-          deleteChats(chatids: $chatids, userid: $userid)
+        mutation($chatids:[String]!) {
+          deleteChats(chatids: $chatids)
         }`;
-      const variables = { userid, chatids };
+      const variables = { chatids };
       await fetchAppSync({ query, variables });
       // チャット履歴リスト更新
-      await getChatHistory(userid);
+      await getChatHistory();
     } catch (e) {
       console.error("delete chats error", e);
     }
@@ -225,13 +201,15 @@ function PlayGround({ signOut }: any) {
     try {
       // チャット保存
       const query = `
-            mutation($chatid:String!, $userid:String!, $messages:[MessageInput]!, $title:String, $sysMsg:String) {
-              putChat(chatid: $chatid, userid: $userid, sysMsg: $sysMsg, title: $title, messages: $messages)
+            mutation($chatid:String!, $messages:[MessageInput]!, $title:String, $sysMsg:String) {
+              putChat(chatid: $chatid, sysMsg: $sysMsg, title: $title, messages: $messages)
             }`;
+
       const variables = { userid, chatid, messages: messages.filter((msg: Message) => !msg.isError), sysMsg, title };
+
       await fetchAppSync({ query, variables });
       // チャット履歴リスト更新
-      await getChatHistory(userid);
+      await getChatHistory();
     } catch (e) {
       console.error("save chat error", e);
     }
@@ -252,7 +230,7 @@ function PlayGround({ signOut }: any) {
     return uuid;
   };
 
-  const fetchAppSync = async ({ query, variables }: { query: string, variables: {} }) => {
+  const fetchAppSync = async ({ query, variables }: any) => {
     const session = await fetchAuthSession();
     const res = await fetch(apiUrls.appSync, {
       method: "POST",
@@ -267,14 +245,13 @@ function PlayGround({ signOut }: any) {
     return resJson?.data;
   };
 
-  const initSettings = async (userid: string | undefined) => {
+  const initSettings = async () => {
     try {
       const query = `
-        query($userid:String!) {
-          getSettings(userid: $userid)
+        query {
+          getSettings
         }`;
-      const variables = { userid };
-      const data = await fetchAppSync({ query, variables });
+      const data = await fetchAppSync({ query });
       const settings = JSON.parse(data.getSettings);
       if (settings) {
         // DBに存在しない項目はstore.jsでの初期化の内容を優先
@@ -287,18 +264,18 @@ function PlayGround({ signOut }: any) {
       console.error("getSettings() error", e);
     }
   };
-  const displayChat = async (userid: string | undefined, chatid: string, updateHistory = true) => {
+  const displayChat = async (chatid: string, updateHistory = true) => {
     try {
       if (!chats[chatid]) {
         const query = `
-        query($chatid:String!, $userid:String!) {
-          getChatDetail(chatid: $chatid, userid: $userid) {
+        query($chatid:String!) {
+          getChatDetail(chatid: $chatid) {
             chat {
               role content done dtm model
             }
           }
         }`;
-        const variables = { userid, chatid };
+        const variables = { chatid };
         const data = await fetchAppSync({ query, variables });
         setChats((chats: Chats) => {
           chats[chatid] = data?.getChatDetail?.chat ? data.getChatDetail.chat : [];
@@ -313,40 +290,62 @@ function PlayGround({ signOut }: any) {
     }
   };
 
-  const getChatHistory = async (userid: String | undefined) => {
+  //const getChatHistory = async (userid: String | undefined) => {
+  const getChatHistory = async (isOnScroll: boolean = false) => {
+    if (isChatsDeleteMode && isOnScroll) return;
+    if (isOnScroll && !chatHistoryLastEvaluatedKey) return;
     try {
       const query = `
-          query($userid:String!) {
-            getChatIdList(userid: $userid) {
-              chatid title updatedAt
+          query($LastEvaluatedKey:String) {
+            getChatIdList(LastEvaluatedKey: $LastEvaluatedKey) {
+              chats {chatid title updatedAt }
+              LastEvaluatedKey
             }
           }`;
-      const variables = { userid };
-      const data = await fetchAppSync({ query, variables });
+      /*
+            const variables = { userid };
+            const data = await fetchAppSync({ query, variables });
+            setChatHistory((chatHistory: Message[]) => {
+              // 応答中チャットとDBから取得したチャット履歴をマージ
+              const gotChatids = data.getChatIdList.map((chat: Message) => chat.chatid);
+              const responding = chatHistory.filter((chat: Message) => chat.title === "...waiting AI response..." && !gotChatids.includes(chat.chatid));
+              return data.getChatIdList ? [...responding, ...data.getChatIdList] : [...responding];
+      */
+      const variables = { LastEvaluatedKey: isOnScroll ? chatHistoryLastEvaluatedKey : null };
+      const res = await fetchAppSync({ query, variables });
+      setChatHistoryLastEvaluatedKey(res.getChatIdList.LastEvaluatedKey);
+      const chats = res.getChatIdList.chats;
       setChatHistory((chatHistory: Message[]) => {
-        // 応答中チャットとDBから取得したチャット履歴をマージ
-        const gotChatids = data.getChatIdList.map((chat: Message) => chat.chatid);
-        const responding = chatHistory.filter((chat: Message) => chat.title === "...waiting AI response..." && !gotChatids.includes(chat.chatid));
-        return data.getChatIdList ? [...responding, ...data.getChatIdList] : [...responding];
+        if (isOnScroll) {
+          return [...chatHistory, ...chats];
+        } else {
+          // 応答中チャットとDBから取得したチャット履歴をマージ
+          const gotChatids = chats.map((chat: Message) => chat.chatid);
+          const responding = chatHistory.filter((chat: Message) => chat.title === "...waiting AI response..." && !gotChatids.includes(chat.chatid));
+          return chats ? [...responding, ...chats] : [...responding];
+        }
       });
     } catch (e) {
       console.error("getChatHistory()", e);
+    }
+  };
+  const onScroll = () => {
+    const el = container.current;
+    if (!el) return;
+    const rate = el.scrollTop / (el.scrollHeight - el.clientHeight);
+    if (rate > 0.99) {
+      getChatHistory(true);
     }
   };
 
   useEffect(() => {
     const initUserid = async () => {
       const session = await fetchAuthSession();
-
-      // ユーザー情報取得
-      const userid = session.tokens?.accessToken.payload.sub;
-      setUserid(userid);
-
       // 管理者判定
       setIsAdmin(session.tokens?.accessToken?.payload ? ["cognito:groups"].includes("admin") : false);
 
       // Chat情報初期化
-      getChatHistory(userid);
+      getChatHistory();
       const getUrlChatid = () => {
         const url = new URL(window.location.href);
         const prms = url.searchParams;
@@ -357,11 +356,11 @@ function PlayGround({ signOut }: any) {
         newChat();
       } else {
         setChatid(gotChatId);
-        displayChat(userid, gotChatId);
+        displayChat(gotChatId);
       }
 
       // DBからユーザー設定を取得
-      initSettings(userid);
+      initSettings();
 
       // 戻る・進む時の処理
       window.addEventListener("popstate", () => {
@@ -369,7 +368,7 @@ function PlayGround({ signOut }: any) {
         if (url.pathname !== "/" || !url.searchParams.has("c")) return;
         const gotChatId = getUrlChatid() + "";
         setChatid(gotChatId);
-        displayChat(userid, gotChatId, false); // history.stateを更新しない
+        displayChat(gotChatId, false); // history.stateを更新しない
       });
     };
     initUserid();
@@ -494,7 +493,7 @@ function PlayGround({ signOut }: any) {
   };
   const clickChatHistoryLine = (chatid: string) => async () => {
     setIsMessageDeleteMode(false);
-    displayChat(userid, chatid);
+    displayChat(chatid);
   };
   const toggleSidebar = () => {
     const content = sidebarContent === "history" ? "edit" : "history";
@@ -554,7 +553,7 @@ function PlayGround({ signOut }: any) {
           </Button>
           <DropdownSelect />
         </div>
-        <AccountButton />
+        <MaterialButton name="person" size={32} onClick={() => setOpenDrawer("drawerZero")} />
         <SettingsDrawer />
         <OpenAiSettingsDrawer
           temperatureGpt={temperatureGpt}
@@ -567,6 +566,7 @@ function PlayGround({ signOut }: any) {
           setPresencePenaltyGpt={setPresencePenaltyGpt}
         />
         <ClaudeSettingsDrawer temperatureClaude={temperatureClaude} setTemperatureClaude={setTemperatureClaude} />
+        <MenuDrawer signOut={signOut} />
       </div>
 
       {/* メインエリア */}
@@ -618,7 +618,7 @@ function PlayGround({ signOut }: any) {
                     }
                     setChatsidsForDelete([]); // 2重処理抑止のため最初に
                     await deleteChats(chatidsForDelete);
-                    await getChatHistory(userid);
+                    await getChatHistory();
                     setIsChatsDeleteMode(false); // 履歴を消した後に表示切り替え
                     setChatsOnDeleteMode([]);
                     if (chatidsForDelete.includes(chatid)) {
@@ -637,7 +637,7 @@ function PlayGround({ signOut }: any) {
                 />
               </>
             )}
-            <div className="overflow-x-hidden overflow-y-auto">
+            <div className="overflow-x-hidden overflow-y-auto" ref={container} onScroll={onScroll}>
               {chatsOnDisplay.map((chat: Message, index: number) => (
                 <div key={index} className="relative group">
                   {isChatsDeleteMode ? (

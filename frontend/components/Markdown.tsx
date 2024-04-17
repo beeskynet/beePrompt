@@ -9,7 +9,7 @@ import remarkGfm from "remark-gfm";
 interface Props {
   node?: HTMLElement;
   children?: string | null;
-  inline?: string;
+  //inline?: string;
   className?: string;
 }
 
@@ -24,7 +24,7 @@ function Markdown({ children, className, ...props }: Props) {
       rehypePlugins={[rehypeRaw]}
       remarkPlugins={[remarkGfm]}
       components={{
-        code({ node, inline, className, children, ...props }: any) {
+        code({ node, className, children, ...props }: any) {
           const match = /language-(\w+)/.exec(className || "");
           // inlineが常にundefinedになるので、改行で判定
           return String(children).indexOf("\n") !== -1 || match ? (

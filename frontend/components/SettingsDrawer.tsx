@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from "react";
 import { Drawer, Checkbox, Typography, IconButton } from "@material-tailwind/react";
 import { AppAtoms } from "lib/store";
 import { apiUrls } from "lib/environments";
@@ -12,22 +11,24 @@ interface variables {
 }
 
 function SettingsDrawer() {
+
   const [open, setOpen] = useAtom(AppAtoms.drawerOpen);
   const closeDrawer = () => setOpen(null);
   const [settings, setSettings] = useAtom(AppAtoms.settings);
-  const [userid, setUserid] = useState<string | undefined>();
-
-  useEffect(() => {
-    const initUserid = async () => {
-      const session = await fetchAuthSession();
-
-      // ユーザー情報取得
-      const userid = session.tokens?.accessToken.payload.sub;
-      setUserid(userid);
-    };
-    initUserid();
-  }, []);
-
+  /*
+    const [userid, setUserid] = useState<string | undefined>();
+  
+    useEffect(() => {
+      const initUserid = async () => {
+        const session = await fetchAuthSession();
+  
+        // ユーザー情報取得
+        const userid = session.tokens?.accessToken.payload.sub;
+        setUserid(userid);
+      };
+      initUserid();
+    }, []);
+  */
   const fetchAppSync = async ({ query, variables }: { query: string, variables: variables }) => {
     const session = await fetchAuthSession();
     const res = await fetch(apiUrls.appSync, {
@@ -41,14 +42,16 @@ function SettingsDrawer() {
     }
     return resJson?.data;
   };
-  const saveSettings = async (userid: string | undefined, settings: string) => {
+
+  const saveSettings = async (settings: string) => {
+
     try {
       // チャット保存
       const query = `
-        mutation($userid:String!, $settings:AWSJSON!) {
-          putSettings(userid: $userid, settings: $settings)
+        mutation($settings:AWSJSON!) {
+          putSettings(settings: $settings)
         }`;
-      const variables = { userid, settings: JSON.stringify(settings) };
+      const variables = { settings: JSON.stringify(settings) };
       return await fetchAppSync({ query, variables });
     } catch (e) {
       console.error("save settings error", e);
@@ -58,7 +61,7 @@ function SettingsDrawer() {
   if (open !== "drawerOne") return null;
   return (
     <Drawer
-      open={open == "drawerOne"}
+      open={!!open}
       onClose={closeDrawer}
       size={350}
       placement="right"
@@ -85,7 +88,7 @@ function SettingsDrawer() {
             const copied = JSON.parse(JSON.stringify(settings));
             copied.appSettings.copyChatOnMessageDeleteMode = !settings.appSettings.copyChatOnMessageDeleteMode;
             setSettings(copied);
-            await saveSettings(userid, copied);
+            await saveSettings(copied);
           }}
         />
         <span className="cursor-pointer select-none">メッセージ削除モードに入る際にチャットを複製する</span>

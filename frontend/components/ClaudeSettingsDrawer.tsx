@@ -1,8 +1,7 @@
-import React, { useState, useEffect, Dispatch, SetStateAction } from "react";
+import React, { Dispatch, SetStateAction } from "react";
 import { Drawer, Button, Typography, IconButton } from "@material-tailwind/react";
 import { AppAtoms } from "lib/store";
 import { useAtom } from "jotai";
-import { fetchAuthSession } from "aws-amplify/auth";
 import { withAuthenticator } from "@aws-amplify/ui-react";
 
 type Props = {
@@ -11,34 +10,12 @@ type Props = {
 };
 const ClaudeSettingsDrawer: React.FC<Props> = ({ temperatureClaude, setTemperatureClaude }) => {
   const [open, setOpen] = useAtom(AppAtoms.drawerOpen);
-  const closeDrawer = () => setOpen(null);
-  const [, setUserid] = useState<string | null>();
-
-  useEffect(() => {
-    const initUserid = async () => {
-      const session = await fetchAuthSession();
-
-      // ユーザー情報取得
-      const userid = session.tokens?.accessToken.payload.sub;
-      setUserid(userid);
-    };
-    initUserid();
-  }, []);
+  const closeDrawer = () => setOpen(false);
 
   const handleChangeTemperature = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.valueAsNumber;
     setTemperatureClaude(value);
   };
-  /*
-  const handleChangeTopP = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.valueAsNumber;
-    setTopPClaude(value);
-  };
-  const handleChangeTopK = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.valueAsNumber;
-    setTopKClaude(value);
-  };
-   */
   const setDefaultParameter = () => {
     setTemperatureClaude(1);
     //setTopPClaude(0.999);

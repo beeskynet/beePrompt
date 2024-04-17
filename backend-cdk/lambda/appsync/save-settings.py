@@ -11,8 +11,8 @@ table = dynamodb.Table(table_name)
 
 def lambda_handler(event, context):
     args = event["arguments"]
-    userid = args["userid"]  # TODO: トークンから取得
     settings = args["settings"]
+    userid = event["identity"]["claims"]["sub"]
 
     res = table.get_item(Key={"pk": "settings#%s" % userid, "sk": "settings"})
     old = res["Item"] if "Item" in res else None

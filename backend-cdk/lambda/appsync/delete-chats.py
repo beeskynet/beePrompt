@@ -15,10 +15,9 @@ def delete_chats(userid, chatids):
         table.delete_item(Key={"pk": "chat#%s" % userid, "sk": chatid})
 
 
-def lambda_handler(event, context):
-    print(event)
+def lambda_handler(event, _):
     args = event["arguments"]
-    userid = args["userid"]
     chatids = args["chatids"]
+    userid = event["identity"]["claims"]["sub"]
     delete_chats(userid, chatids)
     return "Success"

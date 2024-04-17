@@ -22,8 +22,7 @@ function Markdown({ children, className }: Props) {
       rehypePlugins={[rehypeRaw]}
       remarkPlugins={[remarkGfm]}
       components={{
-        code({ node, className, children, style: _rm1, ref: _rm2, ...props }) {
-          // styleとrefの型がSyntaxHighlighterとReactMarkdownで合ってない
+        code({ className, children }) {
           const match = /language-(\w+)/.exec(className || "");
           // inlineが常にundefinedになるので、改行で判定
           return String(children).indexOf("\n") !== -1 || match ? (
@@ -36,14 +35,12 @@ function Markdown({ children, className }: Props) {
                 blur
                 blurColorRga="253, 246, 227"
               />
-              <SyntaxHighlighter style={solarizedlight} language={match ? match[1] : ""} PreTag="div" {...props}>
+              <SyntaxHighlighter style={solarizedlight} language={match ? match[1] : ""} PreTag="div">
                 {Array.isArray(children) ? children : [children]}
               </SyntaxHighlighter>
             </div>
           ) : (
-            <code className={`${className} p-1`} {...props}>
-              {children}
-            </code>
+            <code className={`${className} p-1`}>{children}</code>
           );
         },
       }}

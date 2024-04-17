@@ -11,7 +11,7 @@ const skyBlue = "#a0d8ef";
 const liteGray = "#EEEEEE";
 const MONTHLY_ADDITIONAL_POINTS = 500;
 
-const BalancePieChart = ({ remainingPoints, monthlyAdditonalPoints }: { remainingPoints: number, monthlyAdditonalPoints: number }) => {
+const BalancePieChart = ({ remainingPoints, monthlyAdditonalPoints }: { remainingPoints: number; monthlyAdditonalPoints: number }) => {
   // カラーパターン
   const COLORS = [skyBlue, liteGray];
   const data = [
@@ -35,14 +35,16 @@ const BalancePieChart = ({ remainingPoints, monthlyAdditonalPoints }: { remainin
 };
 
 interface UsageBarChartProps {
-  data: {
-    day: string;
-    usagePoint: number
-  }[] | undefined
+  data:
+    | {
+        day: string;
+        usagePoint: number;
+      }[]
+    | undefined;
 }
 
 const UsageBarChart: NextPage<UsageBarChartProps> = ({ data }) => {
-  function fillMissingDays(data: { day: string, usagePoint: number }[] | undefined) {
+  function fillMissingDays(data: { day: string; usagePoint: number }[] | undefined) {
     const today = new Date();
     const startDay = new Date(today);
     startDay.setDate(today.getDate() - 30);
@@ -75,18 +77,17 @@ const UsageBarChart: NextPage<UsageBarChartProps> = ({ data }) => {
       </BarChart>
     </div>
   );
-}
+};
 function Usage() {
-  const [userid, setUserid] = useState<string | undefined>();
-  const [smrDaily, setSmrDaily] = useState<{ day: string, usagePoint: number }[]>([]);
-  const [smrMonthly, setSmrMonthly] = useState([]);
+  const [smrDaily, setSmrDaily] = useState<{ day: string; usagePoint: number }[]>([]);
+  const [_, setSmrMonthly] = useState([]);
   const [balance, setBalance] = useState(0);
   const router = useRouter();
   interface Dict<T> {
     [key: string]: T[];
   }
 
-  const fetchAppSync = async ({ query, variables }: { query: string, variables: {} }) => {
+  const fetchAppSync = async ({ query, variables }: { query: string; variables?: {} }) => {
     const session = await fetchAuthSession();
     const res = await fetch(apiUrls.appSync, {
       method: "POST",
@@ -104,19 +105,16 @@ function Usage() {
     const session = await fetchAuthSession();
     // ユーザー情報取得
     const userid = session.tokens?.accessToken.payload.sub;
-    setUserid(userid);
 
-    //
     const getUsage = async () => {
-      const variables = { userid: userid };
       const query = `
-        query($userid:String!) {
-          getUsage(userid: $userid) {
+        query {
+          getUsage {
             smrDaily { day usagePoint }
             smrMonthly { month usagePoint }
           }
         }`;
-      const res = await fetchAppSync({ query, variables });
+      const res = await fetchAppSync({ query });
       setSmrDaily(res.getUsage.smrDaily);
       setSmrMonthly(res.getUsage.smrMonthly);
     };

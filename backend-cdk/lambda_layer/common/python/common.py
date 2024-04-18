@@ -341,7 +341,9 @@ def use_points(userid, points_to_use):
                 TransactItems = append_delete_balance_item_to_transact(
                     TransactItems, effe_balance
                 )
-                points_to_use -= effe_balance["balance"]
+                points_to_use = Decimal(points_to_use) - Decimal(
+                    effe_balance["balance"]
+                )
     client = boto3.client("dynamodb", region_name="ap-northeast-1")
     client.transact_write_items(TransactItems=TransactItems)
 

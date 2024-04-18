@@ -9,13 +9,13 @@ import { useSetAtom, useAtomValue } from "jotai";
 import { NextPage } from "next";
 
 interface MessageProp {
-  message: Message
+  message: Message;
 }
 
 const Message: NextPage<MessageProp> = ({ message }) => {
   if (message.content == null) {
-    const promise = new Promise(() => { }); // "Uncaught (in promise) Error ~"出力抑止
-    promise.catch(function () { });
+    const promise = new Promise(() => {}); // "Uncaught (in promise) Error ~"出力抑止
+    promise.catch(function () {});
     throw promise;
   }
 
@@ -83,17 +83,18 @@ const UserAssistant: NextPage<MessageProp> = ({ message }) => {
   const setMessagesOnDeleteMode = useSetAtom(AppAtoms.messagesOnDeleteMode);
   const isMessageDeleteMode = useAtomValue(AppAtoms.isMessageDeleteMode);
   const copyMessage = (message: Message) => () => {
-    navigator.clipboard.writeText(message.toString());
+    if (message.content) navigator.clipboard.writeText(message.content);
   };
   const deleteMessage =
-    ({ dtm, role }: { dtm?: string, role?: string }) =>
-      () => {
-        setMessagesOnDeleteMode((messages) => messages.filter((msg: Message) => msg.dtm !== dtm || msg.role !== role));
-      };
+    ({ dtm, role }: { dtm?: string; role?: string }) =>
+    () => {
+      setMessagesOnDeleteMode((messages) => messages.filter((msg: Message) => msg.dtm !== dtm || msg.role !== role));
+    };
   return (
     <div
-      className={`mb-1 ml-2 p-2 w-max-full rounded-md relative  bg-neutral-100 border group ${message.role === "user" ? "border-indigo-100" : "border-pink-100"
-        }`}
+      className={`mb-1 ml-2 p-2 w-max-full rounded-md relative  bg-neutral-100 border group ${
+        message.role === "user" ? "border-indigo-100" : "border-pink-100"
+      }`}
     >
       {!isMessageDeleteMode ? (
         <MaterialButton name="content_copy" className="absolute top-1 right-1 invisible" groupHoverVisible onClick={copyMessage(message)} />

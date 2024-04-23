@@ -11,25 +11,10 @@ interface variables {
 }
 
 function SettingsDrawer() {
-
   const [open, setOpen] = useAtom(AppAtoms.drawerOpen);
   const closeDrawer = () => setOpen(null);
   const [settings, setSettings] = useAtom(AppAtoms.settings);
-  /*
-    const [userid, setUserid] = useState<string | undefined>();
-  
-    useEffect(() => {
-      const initUserid = async () => {
-        const session = await fetchAuthSession();
-  
-        // ユーザー情報取得
-        const userid = session.tokens?.accessToken.payload.sub;
-        setUserid(userid);
-      };
-      initUserid();
-    }, []);
-  */
-  const fetchAppSync = async ({ query, variables }: { query: string, variables: variables }) => {
+  const fetchAppSync = async ({ query, variables }: { query: string; variables: variables }) => {
     const session = await fetchAuthSession();
     const res = await fetch(apiUrls.appSync, {
       method: "POST",
@@ -44,7 +29,6 @@ function SettingsDrawer() {
   };
 
   const saveSettings = async (settings: string) => {
-
     try {
       // チャット保存
       const query = `

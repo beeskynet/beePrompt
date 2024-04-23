@@ -12,7 +12,7 @@ interface MessageProp {
   message: Message;
 }
 
-const Message: NextPage<MessageProp> = ({ message }) => {
+const ChatMessage: NextPage<MessageProp> = ({ message }) => {
   if (message.content == null) {
     const promise = new Promise(() => {}); // "Uncaught (in promise) Error ~"出力抑止
     promise.catch(function () {});
@@ -109,7 +109,7 @@ const UserAssistant: NextPage<MessageProp> = ({ message }) => {
         <p className="text-left text-sm ml-1 text-gray-600">{message.model ? modelsGens[message.model].toUpperCase() : "YOU"}</p>
       </div>
       <Suspense fallback={<WaitingMessage message={message} />}>
-        <Message message={message} />
+        <ChatMessage message={message} />
       </Suspense>
     </div>
   );

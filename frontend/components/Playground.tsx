@@ -381,15 +381,12 @@ function PlayGround() {
     initUserid();
 
     // スクロール操作でメッセージコンテナの下端から離れたらオートスクロールをオフに
-
-    const atBottom = (el: HTMLInputElement) => el.scrollHeight - el.scrollTop === el.clientHeight;
+    const atBottom = (el: HTMLElement) => el.scrollHeight - el.scrollTop === el.clientHeight;
     document.querySelector("#messages-container")?.addEventListener("scroll", (e) => {
-      if (e.target instanceof HTMLInputElement) {
-        if (atBottom(e.target)) {
-          setAutoScroll(true);
-        } else {
-          setAutoScroll(false);
-        }
+      if (atBottom(e.target as HTMLElement)) {
+        setAutoScroll(true);
+      } else {
+        setAutoScroll(false);
       }
     });
   }, []);

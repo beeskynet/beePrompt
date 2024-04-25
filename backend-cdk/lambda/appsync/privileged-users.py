@@ -4,6 +4,12 @@ from pytz import timezone
 import boto3
 import json
 import common
+from datetime import datetime
+
+
+dynamodb = boto3.resource("dynamodb")
+table_name = common.table_name
+table = dynamodb.Table(table_name)
 
 
 def toCamelCase(string, titleCase=False):
@@ -41,6 +47,17 @@ def users():
         newUser["groups"] = get_user_groups(user_pool_id, user["Username"])
         newUser["userCreateDate"] = str(user["UserCreateDate"].astimezone(timezone("Asia/Tokyo")))
         newUser["userLastModifiedDate"] = str(user["UserLastModifiedDate"].astimezone(timezone("Asia/Tokyo")))
+
+    tm = str(datetime.now(timezone("Asia/Tokyo")))
+    item = {
+        "pk": "privileged-users",
+        "sk": "privileged-users",
+        "dtype": "privileged-users",
+        "users": json.dumps(newUsers),
+        "createdAt": tm[:19],  # yyyy-mm-dd hh:mm:ss
+        "updatedAt": tm[:19],  # yyyy-mm-dd hh:mm:ss
+    }
+    table.put_item(Item=item)
     return newUsers
 
 

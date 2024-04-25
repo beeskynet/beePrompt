@@ -1,11 +1,12 @@
 ## PK SK
-|DataType|PK|SK|
+|データタイプ|PK|SK|
 |----|----|----|
 |チャット履歴|chat#{userid}|chatid(uuid-v4)|
 |使用量|usage#{userid}|作成日時(yyyy-mm-dd hh:mm:ss.sssss)|
 |ポイント残高|pt#{userid}|ポイント有効期限(yyyy-mm-dd hh:mm:ss.sssss)|
 |ポイント残高更新ログ|ptlog#{userid}|ポイント有効期限#作成日時|
 |ユーザー設定|settings#{userid}|settings|
+|特権ユーザーリスト|privileged-users|privileged-users|
 
 ## DataType別概要
 #### チャット履歴(chat)
@@ -22,6 +23,9 @@ common.save_usage()
 
 #### ユーザー設定(settings)
 各ユーザーが変更可能な設定
+
+#### 特権ユーザーリスト(privileged-users)
+特権ユーザーのリスト。Cognitoから取得すると遅いので取得高速化のために保存
 
 ## ユーザー設定項目
 #### copyChatOnMessageDeleteMode

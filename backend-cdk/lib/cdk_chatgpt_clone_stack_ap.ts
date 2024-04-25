@@ -135,6 +135,9 @@ export class CdkChatgptCloneStackAP extends Stack {
     cognitoReadRole.addManagedPolicy(
       ManagedPolicy.fromAwsManagedPolicyName('AmazonCognitoReadOnly')
     );
+    cognitoReadRole.addManagedPolicy(
+      ManagedPolicy.fromAwsManagedPolicyName('AmazonDynamoDBFullAccess')
+    );
 
     const cognitoFullAccessRole = new aws_iam.Role(
       this,

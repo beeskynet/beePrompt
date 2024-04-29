@@ -42,12 +42,12 @@ function ManBalance() {
     const getPrivilegedUsers = async () => {
       const query = `
           query {
-            getPrivilegedUsersDB {
+            getPrivilegedUsers{
               sub username email
             }
           }`;
       const res = await fetchAppSync({ query });
-      const gotUsers = res.getPrivilegedUsersDB;
+      const gotUsers = res.getPrivilegedUsers;
       const userids = gotUsers.map((user: User) => user.sub);
       const variables = { userids };
       const getBalances = async () => {
@@ -128,7 +128,10 @@ function ManBalance() {
         setMessage("ユーザーを削除しました。");
         setError(false);
         setUsers(users.filter((user) => !idsForDelete.includes(user.sub)));
-        await init();
+        // CognitoユーザーリストのDB転記情報を更新
+        const query = `
+          mutation { updatePrivilegedUsers }`;
+        fetchAppSync({ query });
       } else {
         setMessage("ユーザー削除に失敗しました。");
         setError(true);

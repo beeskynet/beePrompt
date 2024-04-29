@@ -88,6 +88,8 @@ type Mutation {
 		@aws_auth(cognito_groups: ["admin"])
 	deleteUsers(usernames: [String]!): String
 		@aws_auth(cognito_groups: ["admin"])
+	updatePrivilegedUsers: String
+		@aws_auth(cognito_groups: ["admin"])
 }
 
 type Query {
@@ -102,7 +104,5 @@ type Query {
 	getSettings: AWSJSON
 		@aws_auth(cognito_groups: ["active"])
 	getPrivilegedUsers: [User]
-		@aws_auth(cognito_groups: ["admin"])
-	getPrivilegedUsersDB: [User]
 		@aws_auth(cognito_groups: ["admin"])
 }

@@ -71,6 +71,10 @@ const UserCreationForm: React.FC = () => {
       }`;
     const res = await fetchAppSync({ query, variables });
     if (res?.createUser === "Success") {
+      // CognitoユーザーリストのDB転記情報を更新
+      const query = `
+          mutation { updatePrivilegedUsers }`;
+      await fetchAppSync({ query });
       setMessage("ユーザーを作成しました。");
       setError(false);
       setFormState(initialFormState);

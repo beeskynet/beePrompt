@@ -296,20 +296,23 @@ export class CdkChatgptCloneStackAP extends Stack {
         role: dynamodbReadRole,
       },
       {
-        name: 'privileged-users-db',
+        name: 'privileged-users',
         dir: 'appsync',
         appSyncRelolver: {
           typeName: 'Query',
-          fieldName: 'getPrivilegedUsersDB',
+          fieldName: 'getPrivilegedUsers',
         },
         layers: [pytzLayer, commonLayer],
         environment,
         role: dynamodbReadRole,
       },
       {
-        name: 'privileged-users',
+        name: 'update-privileged-users',
         dir: 'appsync',
-        appSyncRelolver: { typeName: 'Query', fieldName: 'getPrivilegedUsers' },
+        appSyncRelolver: {
+          typeName: 'Mutation',
+          fieldName: 'updatePrivilegedUsers',
+        },
         layers: [pytzLayer, commonLayer],
         environment,
         role: cognitoReadRole,

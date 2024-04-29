@@ -103,4 +103,6 @@ type Query {
 		@aws_auth(cognito_groups: ["active"])
 	getPrivilegedUsers: [User]
 		@aws_auth(cognito_groups: ["admin"])
+	getPrivilegedUsersDB: [User]
+		@aws_auth(cognito_groups: ["admin"])
 }

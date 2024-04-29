@@ -42,12 +42,12 @@ function ManBalance() {
     const getPrivilegedUsers = async () => {
       const query = `
           query {
-            getPrivilegedUsers {
+            getPrivilegedUsersDB {
               sub username email
             }
           }`;
       const res = await fetchAppSync({ query });
-      const gotUsers = res.getPrivilegedUsers;
+      const gotUsers = res.getPrivilegedUsersDB;
       const userids = gotUsers.map((user: User) => user.sub);
       const variables = { userids };
       const getBalances = async () => {

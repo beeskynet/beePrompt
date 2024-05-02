@@ -168,10 +168,7 @@ def save_usage(userid, io_type, model, io_costs):
 
 def use_points(userid, points_to_use):
     if points_to_use < 0:
-        raise Exception(
-            "use_points()のpoints_to_useはマイナス値不可:points_to_add=%f"
-            % points_to_use
-        )
+        raise Exception("use_points()のpoints_to_useはマイナス値不可:points_to_add=%f" % points_to_use)
 
     def get_effective_balance(userid):
         """有効残高を取得"""
@@ -189,9 +186,7 @@ def use_points(userid, points_to_use):
     if len(effective_balances) == 0:
         # 残高レコードがない ※API利用時にはありえない
         # 残高付与登録
-        expiryDate = str(datetime.now(timezone("Asia/Tokyo")) + timedelta(days=365))[
-            :25
-        ]
+        expiryDate = str(datetime.now(timezone("Asia/Tokyo")) + timedelta(days=365))[:25]
         now = datetime.now(timezone("Asia/Tokyo"))
         TransactItems.append(
             {
@@ -223,9 +218,7 @@ def use_points(userid, points_to_use):
                         },
                         "balance": {"N": str(-points_to_use)},
                         "additionalPoints": {"N": str(-points_to_use)},
-                        "createdAt": {
-                            "S": str(datetime.now(timezone("Asia/Tokyo")))[:19]
-                        },  # yyyy-mm-dd hh:mm:ss
+                        "createdAt": {"S": str(datetime.now(timezone("Asia/Tokyo")))[:19]},  # yyyy-mm-dd hh:mm:ss
                     },
                 }
             }
@@ -247,9 +240,7 @@ def use_points(userid, points_to_use):
                         "ExpressionAttributeValues": {
                             ":orig_balance": {"N": str(effe_balance["balance"])},
                             ":new_balance": {"N": str(new_balance)},
-                            ":updatedAt": {
-                                "S": str(datetime.now(timezone("Asia/Tokyo")))[:19]
-                            },  # yyyy-mm-dd hh:mm:ss
+                            ":updatedAt": {"S": str(datetime.now(timezone("Asia/Tokyo")))[:19]},  # yyyy-mm-dd hh:mm:ss
                         },
                     },
                 }
@@ -269,9 +260,7 @@ def use_points(userid, points_to_use):
                             },
                             "balance": {"N": str(new_balance)},
                             "additionalPoints": {"N": str(-points_to_use)},
-                            "createdAt": {
-                                "S": str(datetime.now(timezone("Asia/Tokyo")))[:19]
-                            },  # yyyy-mm-dd hh:mm:ss
+                            "createdAt": {"S": str(datetime.now(timezone("Asia/Tokyo")))[:19]},  # yyyy-mm-dd hh:mm:ss
                         },
                     }
                 }
@@ -288,9 +277,7 @@ def use_points(userid, points_to_use):
                             "sk": {"S": effe_balance["sk"]},
                         },
                         "ConditionExpression": "balance = :orig_balance",
-                        "ExpressionAttributeValues": {
-                            ":orig_balance": {"N": str(effe_balance["balance"])}
-                        },
+                        "ExpressionAttributeValues": {":orig_balance": {"N": str(effe_balance["balance"])}},
                     },
                 }
             )
@@ -309,9 +296,7 @@ def use_points(userid, points_to_use):
                             },
                             "balance": {"N": "0"},
                             "additionalPoints": {"N": str(-effe_balance["balance"])},
-                            "createdAt": {
-                                "S": str(datetime.now(timezone("Asia/Tokyo")))[:19]
-                            },  # yyyy-mm-dd hh:mm:ss
+                            "createdAt": {"S": str(datetime.now(timezone("Asia/Tokyo")))[:19]},  # yyyy-mm-dd hh:mm:ss
                         },
                     }
                 }
@@ -320,46 +305,31 @@ def use_points(userid, points_to_use):
 
         if effe_balance["balance"] > points_to_use:
             # 残高から利用ポイントを引いて終了
-            TransactItems = append_use_balance_item_to_transact(
-                TransactItems, effe_balance
-            )
+            TransactItems = append_use_balance_item_to_transact(TransactItems, effe_balance)
             break
         elif effe_balance["balance"] == points_to_use:
             # 残高=利用ポイント→0  ※ほぼありえない
-            TransactItems = append_delete_balance_item_to_transact(
-                TransactItems, effe_balance
-            )
+            TransactItems = append_delete_balance_item_to_transact(TransactItems, effe_balance)
             break
         elif effe_balance["balance"] < points_to_use:
             if effe_balance["sk"] == effective_balances[-1]["sk"]:
                 # 最新レコード: マイナス残高に更新して終了
-                TransactItems = append_use_balance_item_to_transact(
-                    TransactItems, effe_balance
-                )
+                TransactItems = append_use_balance_item_to_transact(TransactItems, effe_balance)
             else:
                 # 非最新レコード: 残高レコードを削除し、利用ポイントから残高レコードの残高を引いて継続
-                TransactItems = append_delete_balance_item_to_transact(
-                    TransactItems, effe_balance
-                )
-                points_to_use = Decimal(points_to_use) - Decimal(
-                    effe_balance["balance"]
-                )
+                TransactItems = append_delete_balance_item_to_transact(TransactItems, effe_balance)
+                points_to_use = Decimal(points_to_use) - Decimal(effe_balance["balance"])
     client = boto3.client("dynamodb", region_name="ap-northeast-1")
     client.transact_write_items(TransactItems=TransactItems)
 
 
 def add_points(userid, points_to_add, effective_days):
     if points_to_add < 0:
-        raise Exception(
-            "add_point()のpoints_to_addはマイナス値不可:points_to_add=%f"
-            % points_to_add
-        )
+        raise Exception("add_point()のpoints_to_addはマイナス値不可:points_to_add=%f" % points_to_add)
 
     def get_negative_balance(userid):
         """マイナス残高を取得"""
-        response = table.query(
-            KeyConditionExpression=Key("pk").eq("pt#%s" % userid), ScanIndexForward=True
-        )
+        response = table.query(KeyConditionExpression=Key("pk").eq("pt#%s" % userid), ScanIndexForward=True)
         items = response["Items"]
         negative_balances = [item for item in items if item["balance"] < 0]
         return negative_balances
@@ -380,9 +350,7 @@ def add_points(userid, points_to_add, effective_days):
                             "sk": {"S": nega_balance["sk"]},
                         },
                         "ConditionExpression": "balance = :orig_balance",
-                        "ExpressionAttributeValues": {
-                            ":orig_balance": {"N": str(nega_balance["balance"])}
-                        },
+                        "ExpressionAttributeValues": {":orig_balance": {"N": str(nega_balance["balance"])}},
                     },
                 }
             )
@@ -401,9 +369,7 @@ def add_points(userid, points_to_add, effective_days):
                             },
                             "balance": {"N": "0"},
                             "additionalPoints": {"N": str(-nega_balance["balance"])},
-                            "createdAt": {
-                                "S": str(datetime.now(timezone("Asia/Tokyo")))[:19]
-                            },  # yyyy-mm-dd hh:mm:ss
+                            "createdAt": {"S": str(datetime.now(timezone("Asia/Tokyo")))[:19]},  # yyyy-mm-dd hh:mm:ss
                         },
                     }
                 }
@@ -425,9 +391,7 @@ def add_points(userid, points_to_add, effective_days):
                         "ExpressionAttributeValues": {
                             ":orig_balance": {"N": str(nega_balance["balance"])},
                             ":new_balance": {"N": str(new_balance)},
-                            ":updatedAt": {
-                                "S": str(datetime.now(timezone("Asia/Tokyo")))[:19]
-                            },  # yyyy-mm-dd hh:mm:ss
+                            ":updatedAt": {"S": str(datetime.now(timezone("Asia/Tokyo")))[:19]},  # yyyy-mm-dd hh:mm:ss
                         },
                     },
                 }
@@ -447,9 +411,7 @@ def add_points(userid, points_to_add, effective_days):
                             },
                             "balance": {"N": str(new_balance)},
                             "additionalPoints": {"N": str(points_to_add)},
-                            "createdAt": {
-                                "S": str(datetime.now(timezone("Asia/Tokyo")))[:19]
-                            },  # yyyy-mm-dd hh:mm:ss
+                            "createdAt": {"S": str(datetime.now(timezone("Asia/Tokyo")))[:19]},  # yyyy-mm-dd hh:mm:ss
                         },
                     }
                 }
@@ -459,9 +421,7 @@ def add_points(userid, points_to_add, effective_days):
     if points_to_add > 0:
         # ポイント付与
         now = datetime.now(timezone("Asia/Tokyo"))
-        expiryDate = str(now + timedelta(days=effective_days))[
-            :25
-        ]  # 有効期限(yyyy-mm-dd hh:mm:ss.sssss)
+        expiryDate = str(now + timedelta(days=effective_days))[:25]  # 有効期限(yyyy-mm-dd hh:mm:ss.sssss)
         # 残高付与登録
         TransactItems.append(
             {
@@ -493,9 +453,7 @@ def add_points(userid, points_to_add, effective_days):
                         },
                         "balance": {"N": str(points_to_add)},
                         "additionalPoints": {"N": str(points_to_add)},
-                        "createdAt": {
-                            "S": str(datetime.now(timezone("Asia/Tokyo")))[:19]
-                        },  # yyyy-mm-dd hh:mm:ss
+                        "createdAt": {"S": str(datetime.now(timezone("Asia/Tokyo")))[:19]},  # yyyy-mm-dd hh:mm:ss
                     },
                 }
             }

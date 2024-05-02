@@ -23,7 +23,7 @@ export interface Message {
   role?: string;
   dtm?: string;
   model?: string;
-  done?: boolean
+  done?: boolean;
 }
 
 // セレクトボックス様モデルリスト

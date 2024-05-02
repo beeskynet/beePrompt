@@ -3,7 +3,7 @@ import Auth from "lib/auth";
 import { RouteChangeListener } from "components/RouteChangeListener";
 
 interface Props {
-  children?: string
+  children?: string;
 }
 
 export default function RootLayout({ children, ...props }: Props) {

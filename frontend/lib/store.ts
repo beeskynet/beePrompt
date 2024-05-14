@@ -34,6 +34,7 @@ delete models["anthropic.claude-v2"];
 delete models["gpt-3.5-turbo-1106"];
 delete models["gpt-4-1106-preview"];
 delete models["gpt-4-0125-preview"];
+delete models["gpt-4-turbo-2024-04-09"];
 delete models["anthropic.claude-instant-v1"];
 delete models["anthropic.claude-v2"];
 delete models["anthropic.claude-v2:1"];

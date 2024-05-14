@@ -28,6 +28,7 @@ class Model(Enum):
     gpt4 = "gpt-4"
     gpt4turbo_preview = "gpt-4-0125-preview"
     gpt4turbo = "gpt-4-turbo-2024-04-09"
+    gpt4o = "gpt-4o-2024-05-13"
     claude_v3_sonnet = "anthropic.claude-3-sonnet-20240229-v1:0"
     claude_v2 = "anthropic.claude-v2"
     claude_v2_1 = "anthropic.claude-v2:1"
@@ -47,6 +48,7 @@ PRICE = {
     Model.gpt4.value: {"in": 0.03, "out": 0.06},
     Model.gpt4turbo_preview.value: {"in": 0.01, "out": 0.03},
     Model.gpt4turbo.value: {"in": 0.01, "out": 0.03},
+    Model.gpt4o.value: {"in": 0.005, "out": 0.015},
     # claude #
     Model.claude_instant_v1.value: {"in": 0.00163, "out": 0.00551},
     Model.claude_v2.value: {"in": 0.008, "out": 0.024},

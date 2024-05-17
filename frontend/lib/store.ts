@@ -14,6 +14,7 @@ export const modelsGens: { [key: string]: string } = {
   "claude-3-haiku-20240307": "claude-3-haiku",
   "claude-3-sonnet-20240229": "claude-3-sonnet",
   "claude-3-opus-20240229": "claude-3-opus",
+  "command-r-plus": "command-R+",
 };
 
 export interface Message {

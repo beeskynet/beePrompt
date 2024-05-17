@@ -23,6 +23,7 @@ import path = require('path');
 const userPoolId = process.env.USER_POOL_ID || '';
 const openaiApiKey = process.env.OPENAI_API_KEY || '';
 const anthropicApiKey = process.env.ANTHROPIC_API_KEY || '';
+const cohereApiKey = process.env.COHERE_API_KEY || '';
 
 export interface CustomizedProps extends StackProps {
   dbTableName: string; // 既存のDBを使う場合
@@ -189,23 +190,13 @@ export class CdkChatgptCloneStackAP extends Stack {
     );
 
     //===================================== Lambda Layer 作成 =====================================
-    const pytzLayer = new LayerVersion(this, 'pytz', {
-      code: Code.fromAsset('lambda_layer/pytz'),
+    const aiLayer = new LayerVersion(this, 'ai-layer', {
+      code: Code.fromAsset('lambda_layer/ai-layer'),
       compatibleRuntimes: [Runtime.PYTHON_3_11],
     });
 
-    const openaiLayer = new LayerVersion(this, 'openai-proto-layer', {
-      code: Code.fromAsset('lambda_layer/openai-proto-layer'),
-      compatibleRuntimes: [Runtime.PYTHON_3_11],
-    });
-
-    const anthropicLayer = new LayerVersion(this, 'anthropic-layer', {
-      code: Code.fromAsset('lambda_layer/anthropic'),
-      compatibleRuntimes: [Runtime.PYTHON_3_11],
-    });
-
-    const pyjwtLayer = new LayerVersion(this, 'pyjwt', {
-      code: Code.fromAsset('lambda_layer/pyjwt'),
+    const pytzjwtLayer = new LayerVersion(this, 'pytz-jwt', {
+      code: Code.fromAsset('lambda_layer/pytz-jwt'),
       compatibleRuntimes: [Runtime.PYTHON_3_11],
     });
 
@@ -220,6 +211,7 @@ export class CdkChatgptCloneStackAP extends Stack {
       DB_TABLE_NAME: props.dbTableName,
       OPENAI_API_KEY: openaiApiKey,
       ANTHROPIC_API_KEY: anthropicApiKey,
+      COHERE_API_KEY: cohereApiKey,
     };
     const lambdas = [
       // AppSyncAPI
@@ -227,7 +219,7 @@ export class CdkChatgptCloneStackAP extends Stack {
         name: 'save-chat',
         dir: 'appsync',
         appSyncRelolver: { typeName: 'Mutation', fieldName: 'putChat' },
-        layers: [pytzLayer, commonLayer],
+        layers: [pytzjwtLayer, commonLayer],
         environment,
         role: dynamodbFullAccessRole,
       },
@@ -235,7 +227,7 @@ export class CdkChatgptCloneStackAP extends Stack {
         name: 'add-balance',
         dir: 'appsync',
         appSyncRelolver: { typeName: 'Mutation', fieldName: 'addBalance' },
-        layers: [pytzLayer, commonLayer],
+        layers: [pytzjwtLayer, commonLayer],
         environment,
         role: dynamodbFullAccessRole,
       },
@@ -243,7 +235,7 @@ export class CdkChatgptCloneStackAP extends Stack {
         name: 'chat-detail',
         dir: 'appsync',
         appSyncRelolver: { typeName: 'Query', fieldName: 'getChatDetail' },
-        layers: [pytzLayer, commonLayer],
+        layers: [pytzjwtLayer, commonLayer],
         environment,
         role: dynamodbFullAccessRole,
       },
@@ -251,7 +243,7 @@ export class CdkChatgptCloneStackAP extends Stack {
         name: 'chat-id-list',
         dir: 'appsync',
         appSyncRelolver: { typeName: 'Query', fieldName: 'getChatIdList' },
-        layers: [pytzLayer, commonLayer],
+        layers: [pytzjwtLayer, commonLayer],
         environment,
         role: dynamodbFullAccessRole,
       },
@@ -259,7 +251,7 @@ export class CdkChatgptCloneStackAP extends Stack {
         name: 'delete-chats',
         dir: 'appsync',
         appSyncRelolver: { typeName: 'Mutation', fieldName: 'deleteChats' },
-        layers: [pytzLayer, commonLayer],
+        layers: [pytzjwtLayer, commonLayer],
         environment,
         role: dynamodbFullAccessRole,
       },
@@ -267,7 +259,7 @@ export class CdkChatgptCloneStackAP extends Stack {
         name: 'usage',
         dir: 'appsync',
         appSyncRelolver: { typeName: 'Query', fieldName: 'getUsage' },
-        layers: [pytzLayer, commonLayer],
+        layers: [pytzjwtLayer, commonLayer],
         environment,
         role: dynamodbFullAccessRole,
       },
@@ -275,7 +267,7 @@ export class CdkChatgptCloneStackAP extends Stack {
         name: 'settings',
         dir: 'appsync',
         appSyncRelolver: { typeName: 'Query', fieldName: 'getSettings' },
-        layers: [pytzLayer, commonLayer],
+        layers: [pytzjwtLayer, commonLayer],
         environment,
         role: dynamodbFullAccessRole,
       },
@@ -283,7 +275,7 @@ export class CdkChatgptCloneStackAP extends Stack {
         name: 'save-settings',
         dir: 'appsync',
         appSyncRelolver: { typeName: 'Mutation', fieldName: 'putSettings' },
-        layers: [pytzLayer, commonLayer],
+        layers: [pytzjwtLayer, commonLayer],
         environment,
         role: dynamodbFullAccessRole,
       },
@@ -291,7 +283,7 @@ export class CdkChatgptCloneStackAP extends Stack {
         name: 'balances',
         dir: 'appsync',
         appSyncRelolver: { typeName: 'Query', fieldName: 'getBalances' },
-        layers: [pytzLayer, commonLayer],
+        layers: [pytzjwtLayer, commonLayer],
         environment,
         role: dynamodbReadRole,
       },
@@ -302,7 +294,7 @@ export class CdkChatgptCloneStackAP extends Stack {
           typeName: 'Query',
           fieldName: 'getPrivilegedUsers',
         },
-        layers: [pytzLayer, commonLayer],
+        layers: [pytzjwtLayer, commonLayer],
         environment,
         role: dynamodbReadRole,
       },
@@ -313,7 +305,7 @@ export class CdkChatgptCloneStackAP extends Stack {
           typeName: 'Mutation',
           fieldName: 'updatePrivilegedUsers',
         },
-        layers: [pytzLayer, commonLayer],
+        layers: [pytzjwtLayer, commonLayer],
         environment,
         role: cognitoReadRole,
       },
@@ -321,7 +313,7 @@ export class CdkChatgptCloneStackAP extends Stack {
         name: 'create-user',
         dir: 'appsync',
         appSyncRelolver: { typeName: 'Mutation', fieldName: 'createUser' },
-        layers: [pytzLayer, commonLayer],
+        layers: [pytzjwtLayer, commonLayer],
         environment,
         role: cognitoFullAccessRole,
       },
@@ -329,20 +321,14 @@ export class CdkChatgptCloneStackAP extends Stack {
         name: 'delete-users',
         dir: 'appsync',
         appSyncRelolver: { typeName: 'Mutation', fieldName: 'deleteUsers' },
-        layers: [pytzLayer, commonLayer],
+        layers: [pytzjwtLayer, commonLayer],
         environment,
         role: cognitoFullAccessRole,
       },
       {
         name: 'websock',
         dir: 'websocket',
-        layers: [
-          openaiLayer,
-          anthropicLayer,
-          pytzLayer,
-          pyjwtLayer,
-          commonLayer,
-        ],
+        layers: [aiLayer, pytzjwtLayer, commonLayer],
         environment,
         role: MainLamdaRole,
         websock: true,

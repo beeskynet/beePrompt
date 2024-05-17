@@ -36,6 +36,7 @@ class Model(Enum):
     claude_3_opus = "claude-3-opus-20240229"
     claude_3_sonnet = "claude-3-sonnet-20240229"
     claude_3_haiku = "claude-3-haiku-20240307"
+    command_r_plus = "command-r-plus"
 
 
 # https://openai.com/pricing
@@ -57,6 +58,8 @@ PRICE = {
     Model.claude_3_haiku.value: {"in": 0.00025, "out": 0.00125},
     Model.claude_3_sonnet.value: {"in": 0.003, "out": 0.015},
     Model.claude_3_opus.value: {"in": 0.015, "out": 0.075},
+    # command #
+    Model.command_r_plus.value: {"in": 0.0, "out": 0.0},
 }
 
 

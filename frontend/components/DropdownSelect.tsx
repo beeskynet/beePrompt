@@ -59,6 +59,7 @@ function DropdownSelect() {
                   <Avatar src="./anthropic.ico" className="w-6 h-6 text-tiny" />
                 ) : null}
                 {selectedModel.startsWith("gpt") ? <Avatar src="./openai-logomark.svg" className="w-5 h-5 text-tiny mr-1" /> : null}
+                {selectedModel.startsWith("command") ? <Avatar src="./cohere-logo.svg" className="w-5 h-5 text-tiny mr-1" /> : null}
                 <span className="text-gray-700 select-none">{models[selectedModel]}</span>
               </>
             )}
@@ -74,6 +75,7 @@ function DropdownSelect() {
               >
                 {key.startsWith("anthropic") || key.startsWith("claude") ? <Avatar src="./anthropic.ico" className="mx-1 w-6 h-6 text-tiny" /> : null}
                 {key.startsWith("gpt") ? <Avatar src="./openai-logomark.svg" className="mx-2 w-5 h-5 text-tiny" /> : null}
+                {key.startsWith("command") ? <Avatar src="./cohere-logo.svg" className="mx-2 w-5 h-5 text-tiny" /> : null}
                 <div className="my-2">{models[key]}</div>
               </li>
             ))}

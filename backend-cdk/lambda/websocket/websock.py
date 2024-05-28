@@ -288,7 +288,6 @@ def lambda_handler(event, _):
                 model=model,
                 chat_history=mid_msgs,
                 message=userMsg,
-                temperature=0.3,  # pyright: ignore[reportArgumentType]
             )
             for event in stream:
                 if event.event_type == "text-generation":

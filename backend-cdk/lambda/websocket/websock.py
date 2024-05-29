@@ -2,6 +2,7 @@ from anthropic import Anthropic
 import anthropic
 from openai import OpenAI
 import openai
+import cohere
 import json
 import boto3
 import tiktoken
@@ -30,6 +31,7 @@ API_KEY_SECRED_KEY = {
 API_KEY_ENV_NAME = {
     "openai": "OPENAI_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
+    "cohere": "COHERE_API_KEY",
 }
 
 CLAUDE_MAX_OUTPUT_TOKENS = 4096  # 2024/4/1現在、全モデルの最大値= 4096
@@ -93,6 +95,9 @@ def lambda_handler(event, _):
     def init_openai():
         return OpenAI(api_key=api_key("openai"))
 
+    def init_cohere():
+        return cohere.Client(api_key=os.environ.get(API_KEY_ENV_NAME["cohere"]))
+
     def count_token(text):
         # Claudeの呼び出し前入力トークン数算出もGPT用のもので代用
         # ライブラリバージョンアップにより下記が廃止になったため。
@@ -104,6 +109,9 @@ def lambda_handler(event, _):
 
     def is_gpt(model):
         return model.startswith("gpt-")
+
+    def is_command(model):
+        return model.startswith("command")
 
     def est_cost_claude(io_type, token_cnt, model):
         dollar_1token = PRICE[model][io_type]
@@ -135,6 +143,14 @@ def lambda_handler(event, _):
             f"{io_type}_dollar": "%.5f" % dollar,
             f"{io_type}_yen": "%.3f" % yen,
             f"{io_type}_usage_point": "%.3f" % usage_point,
+        }
+
+    def est_cohere_cost(io_type):
+        return {
+            f"{io_type}_token": 0,
+            f"{io_type}_dollar": 0,
+            f"{io_type}_yen": 0,
+            f"{io_type}_usage_point": 0,
         }
 
     domain_name = event.get("requestContext", {}).get("domainName")
@@ -213,29 +229,38 @@ def lambda_handler(event, _):
             return user_1assistant_list
 
         mid_msgs = []
-        for user_1assistant in user_1assistant_list(messages):
-            user_msg = user_1assistant["user"]
-            assistant_msg = user_1assistant["assistant"]
-            mid_msgs.append({"role": user_msg["role"], "content": user_msg["content"]})
-            mid_msgs.append({"role": assistant_msg["role"], "content": assistant_msg["content"]})
+        if is_command(model):
+            for user_1assistant in user_1assistant_list(messages):
+                user_msg = user_1assistant["user"]
+                assistant_msg = user_1assistant["assistant"]
+                mid_msgs.append({"role": "USER", "text": user_msg["content"]})
+                mid_msgs.append({"role": "CHATBOT", "text": assistant_msg["content"]})
+        else:
+            for user_1assistant in user_1assistant_list(messages):
+                user_msg = user_1assistant["user"]
+                assistant_msg = user_1assistant["assistant"]
+                mid_msgs.append({"role": user_msg["role"], "content": user_msg["content"]})
+                mid_msgs.append({"role": assistant_msg["role"], "content": assistant_msg["content"]})
         sys_msg = [{"role": "system", "content": sysMsg}] if is_gpt(model) else []
         in_msgs = sys_msg + mid_msgs + [{"role": "user", "content": userMsg}]
 
-        # ポイントチェック
-        pre_in_costs = est_gpt_cost("in", in_msgs, model)
+        # for command
 
-        res_vali = check_enough_points(userid, pre_in_costs["in_usage_point"])
-        if not res_vali["success"]:
-            apigw_management.post_to_connection(
-                ConnectionId=connectionId,
-                Data=json.dumps({**res_vali["error-response"], "chatid": chatid, "dtm": dtm}),
-            )
-            return {"statusCode": 400, "body": res_vali["error-response"]}
+        # ポイントチェック
+        if not is_command(model):
+            pre_in_costs = est_gpt_cost("in", in_msgs, model)
+            res_vali = check_enough_points(userid, pre_in_costs["in_usage_point"])
+            if not res_vali["success"]:
+                apigw_management.post_to_connection(
+                    ConnectionId=connectionId,
+                    Data=json.dumps({**res_vali["error-response"], "chatid": chatid, "dtm": dtm}),
+                )
+                return {"statusCode": 400, "body": res_vali["error-response"]}
 
         # モデル呼び出し
         output_tokens = None  # for Claude
         input_tokens = None  # for Claude
-        whole_content = ""  # for GPT
+        whole_content = ""  # for GPT and Command
         if is_gpt(model):
             # gpt
             client = init_openai()
@@ -252,6 +277,21 @@ def lambda_handler(event, _):
             for chunk in stream:
                 if chunk.choices[0].delta.content is not None:
                     content = chunk.choices[0].delta.content
+                    whole_content = whole_content + content
+                    apigw_management.post_to_connection(
+                        ConnectionId=connectionId, Data=json.dumps({"content": content, "chatid": chatid, "dtm": dtm})
+                    )
+        elif is_command(model):
+            # command
+            client = init_cohere()
+            stream = client.chat_stream(  # pyright: ignore[reportCallIssue]
+                model=model,
+                chat_history=mid_msgs,
+                message=userMsg,
+            )
+            for event in stream:
+                if event.event_type == "text-generation":
+                    content = event.text
                     whole_content = whole_content + content
                     apigw_management.post_to_connection(
                         ConnectionId=connectionId, Data=json.dumps({"content": content, "chatid": chatid, "dtm": dtm})
@@ -279,14 +319,21 @@ def lambda_handler(event, _):
                 # メッセージ終了
                 input_tokens = stream.get_final_message().usage.input_tokens
         # 入力利用量登録
-        in_costs = pre_in_costs if is_gpt(model) else est_cost_claude("in", input_tokens, model)
+        if not is_command(model):
+            in_costs = pre_in_costs if is_gpt(model) else est_cost_claude("in", input_tokens, model)
+        if is_command(model):
+            in_costs = est_cohere_cost("in")
         access_db_retry(save_usage, {"userid": userid, "io_type": "in", "model": model, "io_costs": in_costs})
         # 出力利用量登録
-        out_costs = (
-            est_gpt_cost("out", whole_content, model)
-            if is_gpt(model)
-            else est_cost_claude("out", output_tokens, model)
-        )
+        if not is_command(model):
+            out_costs = (
+                est_gpt_cost("out", whole_content, model)
+                if is_gpt(model)
+                else est_cost_claude("out", output_tokens, model)
+            )
+        if is_command(model):
+            out_costs = est_cohere_cost("out")
+
         access_db_retry(save_usage, {"userid": userid, "io_type": "out", "model": model, "io_costs": out_costs})
 
         # ポイント使用

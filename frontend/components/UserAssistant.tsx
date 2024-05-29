@@ -106,6 +106,7 @@ const UserAssistant: NextPage<MessageProp> = ({ message }) => {
           <Avatar src="./anthropic.ico" className="w-6 h-6 text-tiny" />
         ) : null}
         {message.model && message.model.startsWith("gpt") ? <Avatar src="./openai-logomark.svg" className="w-5 h-5 text-tiny" /> : null}
+        {message.model && message.model.startsWith("command") ? <Avatar src="./cohere-logo.svg" className="w-5 h-5 text-tiny" /> : null}
         <p className="text-left text-sm ml-1 text-gray-600">{message.model ? modelsGens[message.model].toUpperCase() : "YOU"}</p>
       </div>
       <Suspense fallback={<WaitingMessage message={message} />}>

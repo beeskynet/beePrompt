@@ -42,7 +42,7 @@ function SettingsDrawer() {
     }
   };
 
-  if (open !== "drawerOne") return null;
+  if (open !== "AppSettingDrawer") return null;
   return (
     <Drawer
       open={!!open}

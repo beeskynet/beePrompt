@@ -12,6 +12,7 @@
 Open AIとAnthropicのWebコンソールよりAPIキーを作成してください。
 - Open AI APIキー
 - Anthropic APIキー
+- Cohere APIキー
 
 ### 事前セットアップ参考
 自身で環境を用意できる方は飛ばしてください。  
@@ -79,7 +80,7 @@ $ cdk bootstrap --all
 
 
 ### APIキーの設定
-環境変数(.env)かAWSシークレットマネージャーのどちらか一方にOpenAIとAnthropicのAPIキーを設定します。  
+環境変数(.env)かAWSシークレットマネージャーのどちらか一方にOpenAI, AnthropicとCohereのAPIキーを設定します。  
 (AWSシークレットマネージャーはAWSの課金が発生します)  
 
 - 環境変数
@@ -88,17 +89,19 @@ $ cdk bootstrap --all
      :
     OPENAI_API_KEY=[OpenAI APIキー]
     ANTHROPIC_API_KEY=[Anthropic APIキー]
+    COHERE_API_KEY=[Anthropic APIキー]
      :
     ```
 
 - AWSシークレットマネージャー  
-    AWSマネージメントコンソールよりOpen AIとAnthropicのAPIキーをシークレットマネージャーに登録します。  
+    AWSマネージメントコンソールよりOpen AI, AnthropicとCohereのAPIキーをシークレットマネージャーに登録します。  
     AWS Secret Manager > シークレット > その他のシークレットのタイプ
 
     |キー|値|
     |---|---|
     |beePrompt-open-ai-secret|[OpenAI APIキー]|
     |beePrompt-anthropic-secret|[Anthropic APIキー]|
+    |beePrompt-cohere-secret|[Cohere APIキー]|
 
 ### User Poolデプロイ・設定
 User Pool関連のリソースをデプロイ

@@ -51,7 +51,7 @@ const OpenAiSettingsDrawer: React.FC<Props> = ({
     setPresencePenaltyGpt(0);
   };
 
-  if (open !== "drawerTwo") return null;
+  if (open !== "OpenAISettingDrawer") return null;
   return (
     <Drawer
       open={!!open}

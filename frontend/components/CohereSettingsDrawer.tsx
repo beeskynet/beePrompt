@@ -5,24 +5,22 @@ import { useAtom } from "jotai";
 import { withAuthenticator } from "@aws-amplify/ui-react";
 
 type Props = {
-  temperatureClaude: number;
-  setTemperatureClaude: Dispatch<SetStateAction<number>>;
+  temperatureCohere: number;
+  setTemperatureCohere: Dispatch<SetStateAction<number>>;
 };
-const ClaudeSettingsDrawer: React.FC<Props> = ({ temperatureClaude, setTemperatureClaude }) => {
+const CohereSettingsDrawer: React.FC<Props> = ({ temperatureCohere, setTemperatureCohere }) => {
   const [open, setOpen] = useAtom(AppAtoms.drawerOpen);
   const closeDrawer = () => setOpen(false);
 
   const handleChangeTemperature = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.valueAsNumber;
-    setTemperatureClaude(value);
+    setTemperatureCohere(value);
   };
   const setDefaultParameter = () => {
-    setTemperatureClaude(1);
-    //setTopPClaude(0.999);
-    //setTopKClaude(250);
+    setTemperatureCohere(1);
   };
 
-  if (open !== "ClaudeSettingDrawer") return null;
+  if (open !== "CohereSettingDrawer") return null;
   return (
     <Drawer
       open={!!open}
@@ -35,7 +33,7 @@ const ClaudeSettingsDrawer: React.FC<Props> = ({ temperatureClaude, setTemperatu
     >
       <div className="mb-6 flex items-center justify-between">
         <Typography variant="h5" color="blue-gray">
-          Claudeパラメータ設定
+          Cohereパラメータ設定
         </Typography>
         <IconButton variant="text" color="blue-gray" onClick={closeDrawer}>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-5 w-5">
@@ -46,29 +44,17 @@ const ClaudeSettingsDrawer: React.FC<Props> = ({ temperatureClaude, setTemperatu
       <Typography as="li" color="blue-gray" className="font-normal ml-4 mt-3">
         <div className="mb-6 flex items-center justify-between">
           <p>Temperature</p>
-          <div>{temperatureClaude}</div>
+          <div>{temperatureCohere}</div>
         </div>
         <input
           type="range"
           className="slider w-full"
-          value={temperatureClaude}
+          value={temperatureCohere}
           min="0"
           max="1"
           step="0.01"
           onChange={(e) => handleChangeTemperature(e)}
         />
-        {/*
-        <div className="mb-6 flex items-center justify-between">
-          <p>top P</p>
-          <div>{topPClaude}</div>
-        </div>
-        <input type="range" className="slider w-full" value={topPClaude} min="0" max="1" step="0.001" onChange={(e) => handleChangeTopP(e)} />
-        <div className="mb-6 flex items-center justify-between">
-          <p>top K</p>
-          <div>{topKClaude}</div>
-        </div>
-        <input type="range" className="slider w-full" value={topKClaude} min="0" max="500" step="1" onChange={(e) => handleChangeTopK(e)} />
-         */}
         <br></br>
       </Typography>
       <div className="p-5 pr-2 mt-auto">
@@ -82,4 +68,4 @@ const ClaudeSettingsDrawer: React.FC<Props> = ({ temperatureClaude, setTemperatu
     </Drawer>
   );
 };
-export default withAuthenticator(ClaudeSettingsDrawer);
+export default withAuthenticator(CohereSettingsDrawer);

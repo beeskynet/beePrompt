@@ -167,6 +167,7 @@ def lambda_handler(event, _):
     frequencyPenaltyGpt = float(body["frequencyPenaltyGpt"])
     presencePenaltyGpt = float(body["presencePenaltyGpt"])
     temperatureClaude = float(body["temperatureClaude"])
+    temperatureCohere = float(body["temperatureCohere"])
     # topPClaude = float(body["topPClaude"])
     # topKClaude = int(body["topKClaude"])
     messages = body["messages"]
@@ -285,9 +286,7 @@ def lambda_handler(event, _):
             # command
             client = init_cohere()
             stream = client.chat_stream(  # pyright: ignore[reportCallIssue]
-                model=model,
-                chat_history=mid_msgs,
-                message=userMsg,
+                model=model, chat_history=mid_msgs, message=userMsg, temperature=temperatureCohere
             )
             for event in stream:
                 if event.event_type == "text-generation":

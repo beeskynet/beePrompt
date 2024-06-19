@@ -89,7 +89,7 @@ function PlayGround() {
   const [frequencyPenaltyGpt, setFrequencyPenaltyGpt] = useState(0);
   const [presencePenaltyGpt, setPresencePenaltyGpt] = useState(0);
   const [temperatureClaude, setTemperatureClaude] = useState(1);
-  const [temperatureCohere, setTemperatureCohere] = useState(1);
+  const [temperatureCohere, setTemperatureCohere] = useState(0.3);
   //const [topPClaude, setTopPClaude] = useState(0.999);
   //const [topKClaude, setTopKClaude] = useState(250);
   const container = useRef<HTMLDivElement | null>(null);

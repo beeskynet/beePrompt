@@ -17,7 +17,7 @@ const CohereSettingsDrawer: React.FC<Props> = ({ temperatureCohere, setTemperatu
     setTemperatureCohere(value);
   };
   const setDefaultParameter = () => {
-    setTemperatureCohere(1);
+    setTemperatureCohere(0.3);
   };
 
   if (open !== "CohereSettingDrawer") return null;

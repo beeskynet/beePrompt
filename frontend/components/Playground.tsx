@@ -13,6 +13,7 @@ import MaterialButton from "./MaterialButton";
 import SettingsDrawer from "./SettingsDrawer";
 import OpenAiSettingsDrawer from "./OpenAiSettingsDrawer";
 import ClaudeSettingsDrawer from "./ClaudeSettingsDrawer";
+import CohereSettingsDrawer from "./CohereSettingsDrawer";
 import MenuDrawer from "./MenuDrawer";
 import useOnWindowRefocus from "lib/useOnWindowReforcus";
 
@@ -88,6 +89,7 @@ function PlayGround() {
   const [frequencyPenaltyGpt, setFrequencyPenaltyGpt] = useState(0);
   const [presencePenaltyGpt, setPresencePenaltyGpt] = useState(0);
   const [temperatureClaude, setTemperatureClaude] = useState(1);
+  const [temperatureCohere, setTemperatureCohere] = useState(0.3);
   //const [topPClaude, setTopPClaude] = useState(0.999);
   //const [topKClaude, setTopKClaude] = useState(250);
   const container = useRef<HTMLDivElement | null>(null);
@@ -470,6 +472,7 @@ function PlayGround() {
           frequencyPenaltyGpt: frequencyPenaltyGpt,
           presencePenaltyGpt: presencePenaltyGpt,
           temperatureClaude: temperatureClaude,
+          temperatureCohere: temperatureCohere,
           // topPClaude: topPClaude,
           // topKClaude: topKClaude,
           messages: chats[chatid].map((msg: Message) => ({ role: msg.role, dtm: msg.dtm, model: msg.model, content: msg.content, done: msg.done })),
@@ -579,6 +582,7 @@ function PlayGround() {
           setPresencePenaltyGpt={setPresencePenaltyGpt}
         />
         <ClaudeSettingsDrawer temperatureClaude={temperatureClaude} setTemperatureClaude={setTemperatureClaude} />
+        <CohereSettingsDrawer temperatureCohere={temperatureCohere} setTemperatureCohere={setTemperatureCohere} />
         <MenuDrawer />
       </div>
 
@@ -759,15 +763,20 @@ function PlayGround() {
                     setIsMessageDeleteMode(true);
                   }}
                 />
-                <MaterialButton name="settings_applications" onClick={() => setOpenDrawer("drawerOne")} />
+                <MaterialButton name="settings_applications" onClick={() => setOpenDrawer("AppSettingDrawer")} />
                 <div className="flex justify-end cursor-pointer">
-                  <span onClick={() => setOpenDrawer("drawerTwo")} style={{ padding: 6 }}>
+                  <span onClick={() => setOpenDrawer("OpenAISettingDrawer")} style={{ padding: 6 }}>
                     <img src="../openai-logomark.svg" width="20" height="20" />
                   </span>
                 </div>
                 <div className="flex justify-end cursor-pointer">
-                  <span onClick={() => setOpenDrawer("drawerThree")} style={{ padding: 0 }}>
-                    <img src="../anthropic.ico" width="32" height="32" />
+                  <span onClick={() => setOpenDrawer("ClaudeSettingDrawer")} style={{ padding: 0 }}>
+                    <img src="../anthropic.ico" width="30" height="30" />
+                  </span>
+                </div>
+                <div className="flex justify-end cursor-pointer">
+                  <span onClick={() => setOpenDrawer("CohereSettingDrawer")} style={{ padding: 5 }}>
+                    <img src="../cohere-logo.svg" width="20" height="20" />
                   </span>
                 </div>
               </>

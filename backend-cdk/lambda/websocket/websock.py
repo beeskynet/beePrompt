@@ -96,7 +96,7 @@ def lambda_handler(event, _):
         return OpenAI(api_key=api_key("openai"))
 
     def init_cohere():
-        return cohere.Client(api_key=os.environ.get(API_KEY_ENV_NAME["cohere"]))
+        return cohere.Client(api_key=api_key("cohere"))
 
     def count_token(text):
         # Claudeの呼び出し前入力トークン数算出もGPT用のもので代用
@@ -167,6 +167,7 @@ def lambda_handler(event, _):
     frequencyPenaltyGpt = float(body["frequencyPenaltyGpt"])
     presencePenaltyGpt = float(body["presencePenaltyGpt"])
     temperatureClaude = float(body["temperatureClaude"])
+    temperatureCohere = float(body["temperatureCohere"])
     # topPClaude = float(body["topPClaude"])
     # topKClaude = int(body["topKClaude"])
     messages = body["messages"]
@@ -288,6 +289,7 @@ def lambda_handler(event, _):
                 model=model,
                 chat_history=mid_msgs,
                 message=userMsg,
+                temperature=temperatureCohere,
             )
             for event in stream:
                 if event.event_type == "text-generation":

@@ -89,7 +89,7 @@ $ cdk bootstrap --all
      :
     OPENAI_API_KEY=[OpenAI APIキー]
     ANTHROPIC_API_KEY=[Anthropic APIキー]
-    COHERE_API_KEY=[Anthropic APIキー]
+    COHERE_API_KEY=[Cohere APIキー]
      :
     ```
 

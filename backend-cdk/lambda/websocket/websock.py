@@ -96,7 +96,7 @@ def lambda_handler(event, _):
         return OpenAI(api_key=api_key("openai"))
 
     def init_cohere():
-        return cohere.Client(api_key=os.environ.get(API_KEY_ENV_NAME["cohere"]))
+        return cohere.Client(api_key=api_key("cohere"))
 
     def count_token(text):
         # Claudeの呼び出し前入力トークン数算出もGPT用のもので代用
@@ -286,7 +286,10 @@ def lambda_handler(event, _):
             # command
             client = init_cohere()
             stream = client.chat_stream(  # pyright: ignore[reportCallIssue]
-                model=model, chat_history=mid_msgs, message=userMsg, temperature=temperatureCohere
+                model=model,
+                chat_history=mid_msgs,
+                message=userMsg,
+                temperature=temperatureCohere,
             )
             for event in stream:
                 if event.event_type == "text-generation":

@@ -13,6 +13,7 @@ export const modelsGens: { [key: string]: string } = {
   "anthropic.claude-3-sonnet-20240229-v1:0": "claude-v3-sonnet",
   "claude-3-haiku-20240307": "claude-3-haiku",
   "claude-3-sonnet-20240229": "claude-3-sonnet",
+  "claude-3-5-sonnet-20240620": "claude-3.5-sonnet",
   "claude-3-opus-20240229": "claude-3-opus",
   "command-r-plus": "command-R+",
 };
@@ -40,13 +41,15 @@ delete models["anthropic.claude-instant-v1"];
 delete models["anthropic.claude-v2"];
 delete models["anthropic.claude-v2:1"];
 delete models["anthropic.claude-3-sonnet-20240229-v1:0"];
+delete models["claude-3-sonnet-20240229"];
 
 const initStatus: { [key: string]: boolean } = {};
 Object.keys(models).map((model) => (initStatus[model] = true));
 
 const submissionStatus = atom(initStatus);
 //const selectedModel = atom("gpt-3.5-turbo-0125");
-const selectedModel = atom("claude-3-haiku-20240307");
+//const selectedModel = atom("claude-3-haiku-20240307");
+const selectedModel = atom("claude-3-5-sonnet-20240620");
 const isParallel = atom(false);
 const waitingMap = atom({});
 const isResponding = atom((get) => Object.values(get(waitingMap) as Array<number>).reduce((sum, element) => sum + element, 0) > 0);

@@ -23,21 +23,25 @@ region = "ap-northeast-1"
 
 
 class Model(Enum):
+    # openai
     gpt35turbo = "gpt-3.5-turbo-0125"
     # gpt35turbo_instract = 'gpt-3.5-turbo-instruct'
     gpt4 = "gpt-4"
     gpt4turbo_preview = "gpt-4-0125-preview"
     gpt4turbo = "gpt-4-turbo-2024-04-09"
     gpt4o = "gpt-4o-2024-05-13"
+    # bedrock
     claude_v3_sonnet = "anthropic.claude-3-sonnet-20240229-v1:0"
     claude_v2 = "anthropic.claude-v2"
     claude_v2_1 = "anthropic.claude-v2:1"
     claude_instant_v1 = "anthropic.claude-instant-v1"
+    # anthropic
     claude_3_opus = "claude-3-opus-20240229"
     claude_3_sonnet = "claude-3-sonnet-20240229"
-    claude_3_haiku = "claude-3-haiku-20240307"
-    command_r_plus = "command-r-plus"
     claude_3_5_sonnet = "claude-3-5-sonnet-20240620"
+    claude_3_haiku = "claude-3-haiku-20240307"
+    # cohere
+    command_r_plus = "command-r-plus"
 
 
 # https://openai.com/pricing

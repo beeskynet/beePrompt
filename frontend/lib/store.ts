@@ -3,6 +3,7 @@ import { atom } from "jotai";
 export const modelsGens: { [key: string]: string } = {
   "gpt-3.5-turbo-1106": "gpt-3.5-turbo",
   "gpt-3.5-turbo-0125": "gpt-3.5-turbo",
+  "gpt-4o-mini": "gpt-4o-mini",
   "gpt-4-1106-preview": "gpt-4-turbo",
   "gpt-4-0125-preview": "gpt-4-turbo",
   "gpt-4-turbo-2024-04-09": "gpt-4-turbo",
@@ -34,6 +35,13 @@ export const models: { [key: string]: string } = { ...modelsGens };
 // 古いモデルを消す
 delete models["anthropic.claude-v2"];
 delete models["gpt-3.5-turbo-1106"];
+delete models["gpt-3.5-turbo-0125"];
+delete models["gpt-4-1106-preview"];
+delete models["gpt-4-0125-preview"];
+delete models["gpt-4-turbo-2024-04-09"];
+delete models["anthropic.claude-instant-v1"];
+delete models["anthropic.claude-v2"];
+delete models["anthropic.claude-v2:1"];
 delete models["gpt-4-1106-preview"];
 delete models["gpt-4-0125-preview"];
 delete models["gpt-4-turbo-2024-04-09"];
@@ -47,8 +55,6 @@ const initStatus: { [key: string]: boolean } = {};
 Object.keys(models).map((model) => (initStatus[model] = true));
 
 const submissionStatus = atom(initStatus);
-//const selectedModel = atom("gpt-3.5-turbo-0125");
-//const selectedModel = atom("claude-3-haiku-20240307");
 const selectedModel = atom("claude-3-5-sonnet-20240620");
 const isParallel = atom(false);
 const waitingMap = atom({});

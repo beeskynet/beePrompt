@@ -5,6 +5,7 @@ import { fetchAuthSession } from "aws-amplify/auth";
 import { apiUrls } from "lib/environments";
 import { Typography } from "@material-tailwind/react";
 import { useRouter } from "next/navigation";
+import { ssgPagePath } from "lib/util";
 
 function ManBalance() {
   const [message, setMessage] = useState("");
@@ -155,7 +156,7 @@ function ManBalance() {
             <Button onClick={confirmDeletion} className={`${buttonStyle}`} disabled={checkedIds().length < 1}>
               削除
             </Button>
-            <Button onClick={() => router.push("/Management/UserCreation")} className={`${buttonStyle} ml-1`}>
+            <Button onClick={() => router.push(ssgPagePath("/Management/UserCreation"))} className={`${buttonStyle} ml-1`}>
               作成
             </Button>
           </div>

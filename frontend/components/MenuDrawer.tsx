@@ -6,6 +6,7 @@ import { useAtom } from "jotai";
 import { fetchAuthSession, signOut } from "aws-amplify/auth";
 import { withAuthenticator } from "@aws-amplify/ui-react";
 import { useRouter } from "next/navigation";
+import { ssgPagePath } from "lib/util";
 
 const MenuDrawer: React.FC = () => {
   const [open, setOpen] = useAtom(AppAtoms.drawerOpen);
@@ -37,11 +38,11 @@ const MenuDrawer: React.FC = () => {
     >
       <List>
         {isAdmin ? (
-          <ListItem className="text-sm" onClick={() => router.push("/Management")}>
+          <ListItem className="text-sm" onClick={() => router.push(ssgPagePath("/Management"))}>
             Management
           </ListItem>
         ) : null}
-        <ListItem className="text-sm" onClick={() => router.push("/Usage")}>
+        <ListItem className="text-sm" onClick={() => router.push(ssgPagePath("/Usage"))}>
           Usage
         </ListItem>
         <ListItem

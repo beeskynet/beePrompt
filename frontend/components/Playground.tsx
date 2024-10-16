@@ -349,11 +349,6 @@ function PlayGround() {
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (url.pathname !== "/") {
-      // サーバがないのでルート以外のパスは移動させる
-      router.push(url.pathname);
-      return;
-    }
 
     const initUserid = async () => {
       const session = await fetchAuthSession();

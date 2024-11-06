@@ -39,8 +39,9 @@ class Model(Enum):
     # anthropic
     claude_3_opus = "claude-3-opus-20240229"
     claude_3_sonnet = "claude-3-sonnet-20240229"
-    claude_3_5_sonnet = "claude-3-5-sonnet-20240620"
+    claude_3_5_sonnet = "claude-3-5-sonnet-20241022"
     claude_3_haiku = "claude-3-haiku-20240307"
+    claude_3_5_haiku = "claude-3-5-haiku-20241022"
     # cohere
     command_r_plus = "command-r-plus"
 
@@ -63,6 +64,7 @@ PRICE = {
     Model.claude_v2_1.value: {"in": 0.008, "out": 0.024},
     Model.claude_v3_sonnet.value: {"in": 0.003, "out": 0.015},
     Model.claude_3_haiku.value: {"in": 0.00025, "out": 0.00125},
+    Model.claude_3_5_haiku.value: {"in": 0.001, "out": 0.005},
     Model.claude_3_sonnet.value: {"in": 0.003, "out": 0.015},
     Model.claude_3_5_sonnet.value: {"in": 0.003, "out": 0.015},
     Model.claude_3_opus.value: {"in": 0.015, "out": 0.075},

@@ -15,6 +15,7 @@ import OpenAiSettingsDrawer from "./OpenAiSettingsDrawer";
 import ClaudeSettingsDrawer from "./ClaudeSettingsDrawer";
 import CohereSettingsDrawer from "./CohereSettingsDrawer";
 import MenuDrawer from "./MenuDrawer";
+import MobileDrawer from "./MobileDrawer";
 import useOnWindowRefocus from "lib/useOnWindowReforcus";
 
 interface Chats {
@@ -51,6 +52,7 @@ function PlayGround() {
   const [systemInput, setSystemInput] = useState("");
   const [autoScroll, setAutoScroll] = useState(true);
   const [sidebarContent, setSidebarContent] = useState("history");
+  const [sidebarDisplay, setSidebarDisplay] = useState(true);
   const [_chatid, _setChatid] = useAtom(AppAtoms.chatid);
   const setChatid = (newChatid: string) => {
     chatid = newChatid;
@@ -230,6 +232,9 @@ function PlayGround() {
     }
     setChatid(uuid);
     setChatsEmptyMessages(uuid);
+    if (!window.matchMedia("(min-width: 768px)").matches) {
+      setSidebarDisplay(false);
+    }
     return uuid;
   };
 
@@ -504,10 +509,16 @@ function PlayGround() {
   const clickChatHistoryLine = (chatid: string) => async () => {
     setIsMessageDeleteMode(false);
     displayChat(chatid);
+    if (!window.matchMedia("(min-width: 768px)").matches) {
+      setSidebarDisplay(false);
+    }
   };
   const toggleSidebar = () => {
     const content = sidebarContent === "history" ? "edit" : "history";
     setSidebarContent(content);
+  };
+  const toggleDisplaySidebar = () => {
+    setSidebarDisplay(!sidebarDisplay);
   };
   const ChatTitleEdit = ({ chat }: { chat: Message }) => {
     const { chatid } = chat;
@@ -554,14 +565,20 @@ function PlayGround() {
     <div id="screen-outline" className="flex flex-col h-screen p-2">
       {/* ヘッダーエリア */}
       <div className="p-1 flex justify-between items-center">
-        <img src="/beePrompt_ganache_432x96.png" style={{ width: 144, height: 32 }} />
+        {window.matchMedia("(min-width: 768px)").matches ? (
+          <img src="/beePrompt_ganache_432x96.png" style={{ width: 144, height: 32 }} />
+        ) : (
+          <MaterialButton name="menu" size={32} onClick={() => setOpenDrawer("drawerMobile")} />
+        )}
         <div className="flex flex-row">
-          <Button
-            onClick={newChat}
-            className="focus:outline-none focus-visible:ring-1 focus-visible:ring-gray-500 whitespace-nowrap py-1 px-2 border border-gray-500 bg-gray-400 font-normal text-white rounded w-36 shadow-none hover:shadow-none"
-          >
-            New Chat
-          </Button>
+          {window.matchMedia("(min-width: 768px)").matches ? (
+            <Button
+              onClick={newChat}
+              className="focus:outline-none focus-visible:ring-1 focus-visible:ring-gray-500 whitespace-nowrap py-1 px-2 border border-gray-500 bg-gray-400 font-normal text-white rounded w-36 shadow-none hover:shadow-none"
+            >
+              New Chat
+            </Button>
+          ) : null}
           <DropdownSelect />
         </div>
         <MaterialButton name="person" size={32} onClick={() => setOpenDrawer("drawerZero")} />
@@ -579,12 +596,13 @@ function PlayGround() {
         <ClaudeSettingsDrawer temperatureClaude={temperatureClaude} setTemperatureClaude={setTemperatureClaude} />
         <CohereSettingsDrawer temperatureCohere={temperatureCohere} setTemperatureCohere={setTemperatureCohere} />
         <MenuDrawer />
+        <MobileDrawer toggleHistory={toggleDisplaySidebar} newChat={newChat} />
       </div>
 
       {/* メインエリア */}
-      <div id="main-container" className="flex overflow-y-auto">
+      <div id="main-container" className="flex flex-col md:flex-row overflow-y-auto">
         {/* サイドバー */}
-        <div id="sidebar-container" className="w-1/4 border rounded-md relative">
+        <div id="sidebar-container" className="md:w-1/4 border rounded-md relative">
           {/* チャット履歴/システムメッセージ切り替えボタン
           <button onClick={() => toggleSidebar()} className="absolute top-1 right-1 bg-transparent border-0 text-gray-500">
             {sidebarContent === "history" ? "編" : "履"}
@@ -606,7 +624,7 @@ function PlayGround() {
             />
           </div>
           {/* 履歴エリア */}
-          <div id="history-area" className={`h-full flex flex-col ${sidebarContent !== "history" ? "hidden" : ""} relative`}>
+          <div id="history-area" className={`h-full flex flex-col ${!sidebarDisplay || sidebarContent !== "history" ? "hidden" : ""} relative`}>
             <p className="text-sm text-left m-2 mt-1 text-gray-500">HISTORY</p>
             {!isChatsDeleteMode ? (
               <MaterialButton
@@ -691,7 +709,7 @@ function PlayGround() {
           </div>
         </div>
         {/* USER・ASSISTANTメッセージエリア */}
-        <div id="main-area" className="flex w-3/4">
+        <div id="main-area" className="flex h-screen md:w-3/4">
           <div id="messages-container" className="frex flex-col flex-grow overflow-y-auto">
             {msgsOnDisplay ? msgsOnDisplay.map((message: Message, index: number) => <UserAssistant message={message} key={index} />) : null}
             <div className="ml-2 flex flex-row" ref={textareaContRef}>

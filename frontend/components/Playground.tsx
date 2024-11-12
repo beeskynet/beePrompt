@@ -562,9 +562,9 @@ function PlayGround() {
   const msgsOnDisplay = !isMessageDeleteMode ? chats[chatid] : messagesOnDeleteMode;
   const chatsOnDisplay = !isChatsDeleteMode ? chatHistory : chatsOnDeleteMode;
   return (
-    <div id="screen-outline" className="flex flex-col h-screen p-2">
+    <div id="screen-outline" className="flex flex-col md:h-screen p-2">
       {/* ヘッダーエリア */}
-      <div className="p-1 flex justify-between items-center">
+      <div className="fixed top-0 left-0 right-0 bg-white z-50 p-1 flex justify-between items-center md:relative">
         {window.matchMedia("(min-width: 768px)").matches ? (
           <img src="/beePrompt_ganache_432x96.png" style={{ width: 144, height: 32 }} />
         ) : (
@@ -600,7 +600,7 @@ function PlayGround() {
       </div>
 
       {/* メインエリア */}
-      <div id="main-container" className="flex flex-col md:flex-row overflow-y-auto">
+      <div id="main-container" className="flex flex-col md:flex-row overflow-y-auto mt-14 md:mt-0">
         {/* サイドバー */}
         <div id="sidebar-container" className="md:w-1/4 border rounded-md relative">
           {/* チャット履歴/システムメッセージ切り替えボタン
@@ -709,7 +709,7 @@ function PlayGround() {
           </div>
         </div>
         {/* USER・ASSISTANTメッセージエリア */}
-        <div id="main-area" className="flex h-screen md:w-3/4">
+        <div id="main-area" className="flex md:w-3/4">
           <div id="messages-container" className="frex flex-col flex-grow overflow-y-auto">
             {msgsOnDisplay ? msgsOnDisplay.map((message: Message, index: number) => <UserAssistant message={message} key={index} />) : null}
             <div className="ml-2 flex flex-row" ref={textareaContRef}>

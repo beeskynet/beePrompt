@@ -272,6 +272,7 @@ function PlayGround() {
         setSettings((orig) => ({
           modelSettings: { ...orig.modelSettings, ...settings.modelSettings },
           appSettings: { ...orig.appSettings, ...settings.appSettings },
+          modelSelection: { ...orig.modelSelection, ...settings.modelSelection },
         }));
       }
     } catch (e) {

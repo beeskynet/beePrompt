@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Avatar } from "@material-tailwind/react";
 import { AppAtoms, models } from "lib/store";
 import { useAtom } from "jotai";
+import { fetchAppSync } from "lib/util";
 
 function DropdownSelect() {
   const [isActive, setIsActive] = useState(false);
@@ -11,36 +12,83 @@ function DropdownSelect() {
   const [submissionStatus, setSubmissionStatus] = useAtom(AppAtoms.submissionStatus);
   const [selectedModel, setSelectedModel] = useAtom(AppAtoms.selectedModel);
   const [isParallel, setIsParallel] = useAtom(AppAtoms.isParallel);
+  const [settings, setSettings] = useAtom(AppAtoms.settings);
 
-  useEffect(() => {
+  const initModellSelection = async () => {
+    try {
+      const query = `
+        query {
+          getSettings
+        }`;
+      const data = await fetchAppSync({ query, variables: {} });
+      const settings = JSON.parse(data.getSettings);
+      if (settings) {
+        setSelectedModel(settings.modelSelection.selectedModel);
+        setIsParallel(settings.modelSelection.isParallel);
+        setSubmissionStatus(settings.modelSelection.submissionStatus);
+      }
+      return settings;
+    } catch (e) {
+      console.error("getSettings() error", e);
+    }
+  };
+  const initSettings = async () => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (dropdownRef.current && !dropdownRef.current.contains(target)) {
         setIsActive(false);
       }
     };
-
+    initModellSelection();
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
+  };
+  useEffect(() => {
+    initSettings();
   }, []);
 
   const handleDropdown = () => {
     setIsActive(!isActive);
   };
 
-  const selectOption = (key: string) => {
-    if (isParallel) {
-      setSubmissionStatus({ ...submissionStatus, [key]: !submissionStatus[key] });
-    } else {
-      setSelectedModel(key);
-      setIsActive(false);
+  const saveSettings = async (settings: string) => {
+    try {
+      // チャット保存
+      const query = `
+        mutation($settings:AWSJSON!) {
+          putSettings(settings: $settings)
+        }`;
+      const variables = { settings: JSON.stringify(settings) };
+      return await fetchAppSync({ query, variables });
+    } catch (e) {
+      console.error("save settings error", e);
     }
   };
 
-  const toggleParallel = () => {
-    setIsParallel(!isParallel);
+  const selectOption = async (key: string) => {
+    const copied = JSON.parse(JSON.stringify(settings));
+    if (isParallel) {
+      const newSubmissionStatus = { ...submissionStatus, [key]: !submissionStatus[key] };
+      setSubmissionStatus(newSubmissionStatus);
+      copied.modelSelection.submissionStatus = newSubmissionStatus;
+    } else {
+      setSelectedModel(key);
+      setIsActive(false);
+      copied.modelSelection.selectedModel = key;
+    }
+    setSettings(copied);
+    await saveSettings(copied);
+  };
+
+  const toggleParallel = async () => {
+    const newIsParallel = !isParallel;
+    setIsParallel(newIsParallel);
+    const copied = JSON.parse(JSON.stringify(settings));
+    copied.modelSelection.isParallel = newIsParallel;
+    setSettings(copied);
+    await saveSettings(copied);
   };
 
   return (

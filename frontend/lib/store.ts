@@ -82,6 +82,11 @@ const settings = atom({
   appSettings: {
     copyChatOnMessageDeleteMode: false,
   },
+  modelSelection: {
+    selectedModel: "",
+    isParallel: false,
+    submissionStatus: {},
+  },
 });
 
 export const AppAtoms = {

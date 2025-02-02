@@ -1,32 +1,13 @@
 import { Drawer, Checkbox, Typography, IconButton } from "@material-tailwind/react";
 import { AppAtoms } from "lib/store";
-import { apiUrls } from "lib/environments";
 import { useAtom } from "jotai";
-import { fetchAuthSession } from "aws-amplify/auth";
 import { withAuthenticator } from "@aws-amplify/ui-react";
-
-interface variables {
-  userid?: string;
-  settings?: string;
-}
+import { fetchAppSync } from "lib/util";
 
 function SettingsDrawer() {
   const [open, setOpen] = useAtom(AppAtoms.drawerOpen);
   const closeDrawer = () => setOpen(null);
   const [settings, setSettings] = useAtom(AppAtoms.settings);
-  const fetchAppSync = async ({ query, variables }: { query: string; variables: variables }) => {
-    const session = await fetchAuthSession();
-    const res = await fetch(apiUrls.appSync, {
-      method: "POST",
-      headers: session.tokens?.accessToken ? { Authorization: session.tokens.accessToken.toString() } : undefined,
-      body: JSON.stringify({ query, variables }),
-    });
-    const resJson = await res.json();
-    if (resJson.errors) {
-      console.error(resJson.errors[0].message, resJson.errors);
-    }
-    return resJson?.data;
-  };
 
   const saveSettings = async (settings: string) => {
     try {

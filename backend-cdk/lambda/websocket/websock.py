@@ -108,7 +108,7 @@ def lambda_handler(event, _):
         return len(token_integers)
 
     def is_gpt(model):
-        return model.startswith("gpt-")
+        return model.startswith("gpt-") or model.startswith("o")
 
     def is_command(model):
         return model.startswith("command")
@@ -263,11 +263,16 @@ def lambda_handler(event, _):
         input_tokens = None  # for Claude
         whole_content = ""  # for GPT and Command
         if is_gpt(model):
+            def filter_messages(messages, model):
+                if model.startswith('o'):
+                    return [msg for msg in messages if msg.get('role') != 'system']
+                return messages
             # gpt
+            filtered_msgs = filter_messages(in_msgs, model)
             client = init_openai()
             stream = client.chat.completions.create(  # pyright: ignore[reportCallIssue]
                 model=model,
-                messages=in_msgs,  # pyright: ignore[reportArgumentType]
+                messages=filtered_msgs,  # pyright: ignore[reportArgumentType]
                 stream=True,
                 user=userid,
                 temperature=temperatureGpt,

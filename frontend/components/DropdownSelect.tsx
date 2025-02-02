@@ -74,7 +74,7 @@ function DropdownSelect() {
                 onClick={() => selectOption(key)}
               >
                 {key.startsWith("anthropic") || key.startsWith("claude") ? <Avatar src="./anthropic.ico" className="mx-1 w-6 h-6 text-tiny" /> : null}
-                {key.startsWith("gpt") ? <Avatar src="./openai-logomark.svg" className="mx-2 w-5 h-5 text-tiny" /> : null}
+                {key.startsWith("gpt") || key.startsWith("o") ? <Avatar src="./openai-logomark.svg" className="mx-2 w-5 h-5 text-tiny" /> : null}
                 {key.startsWith("command") ? <Avatar src="./cohere-logo.svg" className="mx-2 w-5 h-5 text-tiny" /> : null}
                 <div className="my-2">{models[key]}</div>
               </li>

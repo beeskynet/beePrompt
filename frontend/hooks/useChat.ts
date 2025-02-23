@@ -1,13 +1,12 @@
-import { Message } from "../lib/store";
+import { useAtom } from "jotai";
+import { AppAtoms, Message } from "lib/store";
 
 interface Dict<T> {
   [key: string]: T;
 }
 
 interface UseChatProps {
-  isChatsDeleteMode: boolean;
   chatHistoryLastEvaluatedKey: string;
-  setChatHistory: (callback: (chatHistory: Message[]) => Message[]) => void;
   setChatHistoryLastEvaluatedKey: (key: string) => void;
   fetchAppSync: (params: { query: string; variables?: Dict<any> }) => Promise<any>;
   setChats: (callback: (chats: Dict<Message[]>) => Dict<Message[]>) => void;
@@ -22,9 +21,7 @@ interface UseChatProps {
  * @returns チャット関連の機能をまとめたオブジェクト
  */
 export const useChat = ({
-  isChatsDeleteMode,
   chatHistoryLastEvaluatedKey,
-  setChatHistory,
   setChatHistoryLastEvaluatedKey,
   fetchAppSync,
   setChats,
@@ -32,6 +29,9 @@ export const useChat = ({
   router,
   setChatid,
 }: UseChatProps) => {
+  const [isChatsDeleteMode, _setIsChatsDeleteMode] = useAtom(AppAtoms.isChatsDeleteMode);
+  const [_chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
+
   /**
    * チャット履歴を取得する
    * @param isOnScroll スクロールによる追加取得かどうか

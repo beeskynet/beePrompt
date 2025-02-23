@@ -247,9 +247,7 @@ function PlayGround() {
 
   // useChat フックを初期化
   const { getChatHistory, saveChat, deleteChats, displayChat } = useChat({
-    isChatsDeleteMode,
     chatHistoryLastEvaluatedKey,
-    setChatHistory,
     setChatHistoryLastEvaluatedKey,
     fetchAppSync,
     setChats,

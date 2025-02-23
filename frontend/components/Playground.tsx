@@ -17,6 +17,7 @@ import CohereSettingsDrawer from "./CohereSettingsDrawer";
 import MenuDrawer from "./MenuDrawer";
 import MobileDrawer from "./MobileDrawer";
 import useOnWindowRefocus from "lib/useOnWindowReforcus";
+import { useChat } from '../hooks/useChat';
 
 interface Chats {
   [key: string]: Message[];
@@ -305,45 +306,15 @@ function PlayGround() {
     }
   };
 
-  //const getChatHistory = async (userid: String | undefined) => {
-  const getChatHistory = async (isOnScroll: boolean = false) => {
-    if (isChatsDeleteMode && isOnScroll) return;
-    if (isOnScroll && !chatHistoryLastEvaluatedKey) return;
-    try {
-      const query = `
-          query($LastEvaluatedKey:String) {
-            getChatIdList(LastEvaluatedKey: $LastEvaluatedKey) {
-              chats {chatid title updatedAt }
-              LastEvaluatedKey
-            }
-          }`;
-      /*
-            const variables = { userid };
-            const data = await fetchAppSync({ query, variables });
-            setChatHistory((chatHistory: Message[]) => {
-              // 応答中チャットとDBから取得したチャット履歴をマージ
-              const gotChatids = data.getChatIdList.map((chat: Message) => chat.chatid);
-              const responding = chatHistory.filter((chat: Message) => chat.title === "...waiting AI response..." && !gotChatids.includes(chat.chatid));
-              return data.getChatIdList ? [...responding, ...data.getChatIdList] : [...responding];
-      */
-      const variables = { LastEvaluatedKey: isOnScroll ? chatHistoryLastEvaluatedKey : null };
-      const res = await fetchAppSync({ query, variables });
-      setChatHistoryLastEvaluatedKey(res.getChatIdList.LastEvaluatedKey);
-      const chats = res.getChatIdList.chats;
-      setChatHistory((chatHistory: Message[]) => {
-        if (isOnScroll) {
-          return [...chatHistory, ...chats];
-        } else {
-          // 応答中チャットとDBから取得したチャット履歴をマージ
-          const gotChatids = chats.map((chat: Message) => chat.chatid);
-          const responding = chatHistory.filter((chat: Message) => chat.title === "...waiting AI response..." && !gotChatids.includes(chat.chatid));
-          return chats ? [...responding, ...chats] : [...responding];
-        }
-      });
-    } catch (e) {
-      console.error("getChatHistory()", e);
-    }
-  };
+  // useChat フックを初期化
+  const { getChatHistory } = useChat({
+    isChatsDeleteMode,
+    chatHistoryLastEvaluatedKey,
+    setChatHistory,
+    setChatHistoryLastEvaluatedKey,
+    fetchAppSync,
+  });
+
   const onScroll = () => {
     const el = container.current;
     if (!el) return;

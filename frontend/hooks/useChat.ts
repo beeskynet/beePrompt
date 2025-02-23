@@ -1,4 +1,5 @@
 import { Message } from "../lib/store";
+import { useState } from "react";
 
 interface Dict<T> {
   [key: string]: T;
@@ -68,7 +69,26 @@ export const useChat = ({
     }
   }
 
+  const saveChat = async (chatid: string, messages: Message[], sysMsg: string | undefined, title = "") => {
+    if (!messages || messages.length === 0) return;
+    try {
+      const query = `
+        mutation($chatid:String!, $messages:[MessageInput]!, $title:String, $sysMsg:String) {
+          putChat(chatid: $chatid, sysMsg: $sysMsg, title: $title, messages: $messages)
+        }`;
+
+      const variables = { chatid, messages: messages.filter((msg: Message) => !msg.isError), sysMsg, title };
+
+      await fetchAppSync({ query, variables });
+      // チャット履歴リスト更新
+      await getChatHistory();
+    } catch (e) {
+      console.error("save chat error", e);
+    }
+  };
+
   return {
     getChatHistory,
+    saveChat,
   };
 };

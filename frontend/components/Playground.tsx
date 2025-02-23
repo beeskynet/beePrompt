@@ -17,7 +17,7 @@ import CohereSettingsDrawer from "./CohereSettingsDrawer";
 import MenuDrawer from "./MenuDrawer";
 import MobileDrawer from "./MobileDrawer";
 import useOnWindowRefocus from "lib/useOnWindowReforcus";
-import { useChat } from '../hooks/useChat';
+import { useChat } from "../hooks/useChat";
 
 interface Chats {
   [key: string]: Message[];
@@ -61,7 +61,6 @@ function PlayGround() {
   };
 
   const [chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
-  const [userid, _setUserid] = useState<string | undefined>("");
   const [isAdmin, setIsAdmin] = useState(false);
   const selectedModel = useAtomValue(AppAtoms.selectedModel);
   const isParallel = useAtomValue(AppAtoms.isParallel);
@@ -202,25 +201,6 @@ function PlayGround() {
     }
   };
 
-  const saveChat = async (chatid: string, messages: Message[], sysMsg: string | undefined, title = "") => {
-    if (!messages || messages.length === 0) return;
-    try {
-      // チャット保存
-      const query = `
-            mutation($chatid:String!, $messages:[MessageInput]!, $title:String, $sysMsg:String) {
-              putChat(chatid: $chatid, sysMsg: $sysMsg, title: $title, messages: $messages)
-            }`;
-
-      const variables = { userid, chatid, messages: messages.filter((msg: Message) => !msg.isError), sysMsg, title };
-
-      await fetchAppSync({ query, variables });
-      // チャット履歴リスト更新
-      await getChatHistory();
-    } catch (e) {
-      console.error("save chat error", e);
-    }
-  };
-
   const newChat = (e: React.MouseEvent | void) => {
     //e && e.target.blur();
     setIsMessageDeleteMode(false);
@@ -307,7 +287,7 @@ function PlayGround() {
   };
 
   // useChat フックを初期化
-  const { getChatHistory } = useChat({
+  const { getChatHistory, saveChat } = useChat({
     isChatsDeleteMode,
     chatHistoryLastEvaluatedKey,
     setChatHistory,
@@ -325,8 +305,6 @@ function PlayGround() {
   };
 
   useEffect(() => {
-    const url = new URL(window.location.href);
-
     const initUserid = async () => {
       const session = await fetchAuthSession();
       // 管理者判定

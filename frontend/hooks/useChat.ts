@@ -1,5 +1,4 @@
 import { Message } from "../lib/store";
-import { useState } from "react";
 
 interface Dict<T> {
   [key: string]: T;
@@ -11,6 +10,10 @@ interface UseChatProps {
   setChatHistory: (callback: (chatHistory: Message[]) => Message[]) => void;
   setChatHistoryLastEvaluatedKey: (key: string) => void;
   fetchAppSync: (params: { query: string; variables?: Dict<any> }) => Promise<any>;
+  setChats: (callback: (chats: Dict<Message[]>) => Dict<Message[]>) => void;
+  chats: Dict<Message[]>;
+  router: any;
+  setChatid: (chatid: string) => void;
 }
 
 /**
@@ -24,6 +27,10 @@ export const useChat = ({
   setChatHistory,
   setChatHistoryLastEvaluatedKey,
   fetchAppSync,
+  setChats,
+  chats,
+  router,
+  setChatid,
 }: UseChatProps) => {
   /**
    * チャット履歴を取得する
@@ -41,15 +48,6 @@ export const useChat = ({
         }
       }`;
 
-      /*
-          const variables = { userid };
-          const data = await fetchAppSync({ query, variables });
-          setChatHistory((chatHistory: Message[]) => {
-            // 応答中チャットとDBから取得したチャット履歴をマージ
-            const gotChatids = data.getChatIdList.map((chat: Message) => chat.chatid);
-            const responding = chatHistory.filter((chat: Message) => chat.title === "...waiting AI response..." && !gotChatids.includes(chat.chatid));
-            return data.getChatIdList ? [...responding, ...data.getChatIdList] : [...responding];
-       */
       const variables = { LastEvaluatedKey: isOnScroll ? chatHistoryLastEvaluatedKey : null };
       const res = await fetchAppSync({ query, variables });
       setChatHistoryLastEvaluatedKey(res.getChatIdList.LastEvaluatedKey);
@@ -69,6 +67,9 @@ export const useChat = ({
     }
   }
 
+  /**
+   * チャットを保存する
+   */
   const saveChat = async (chatid: string, messages: Message[], sysMsg: string | undefined, title = "") => {
     if (!messages || messages.length === 0) return;
     try {
@@ -87,8 +88,57 @@ export const useChat = ({
     }
   };
 
+  /**
+   * 指定されたチャットを削除する
+   */
+  const deleteChats = async (chatids: string[]) => {
+    try {
+      // チャット削除
+      const query = `
+        mutation($chatids:[String]!) {
+          deleteChats(chatids: $chatids)
+        }`;
+      const variables = { chatids };
+      await fetchAppSync({ query, variables });
+      // チャット履歴リスト更新
+      await getChatHistory();
+    } catch (e) {
+      console.error("delete chats error", e);
+    }
+  };
+
+  /**
+   * 指定されたチャットを表示する
+   */
+  const displayChat = async (chatid: string, updateHistory = true) => {
+    try {
+      if (!chats[chatid]) {
+        const query = `
+        query($chatid:String!) {
+          getChatDetail(chatid: $chatid) {
+            chat {
+              role content done dtm model
+            }
+          }
+        }`;
+        const variables = { chatid };
+        const data = await fetchAppSync({ query, variables });
+        setChats((chats) => {
+          chats[chatid] = data?.getChatDetail?.chat ? data.getChatDetail.chat : [];
+          return chats;
+        });
+      }
+      setChatid(chatid);
+      if (updateHistory) router.push(`/?c=${chatid}`);
+    } catch (e) {
+      console.error("displayChat() error", e);
+    }
+  };
+
   return {
     getChatHistory,
     saveChat,
+    deleteChats,
+    displayChat,
   };
 };

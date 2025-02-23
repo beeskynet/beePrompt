@@ -185,22 +185,6 @@ function PlayGround() {
     }
   };
 
-  const deleteChats = async (chatids: string[]) => {
-    try {
-      // チャット削除
-      const query = `
-        mutation($chatids:[String]!) {
-          deleteChats(chatids: $chatids)
-        }`;
-      const variables = { chatids };
-      await fetchAppSync({ query, variables });
-      // チャット履歴リスト更新
-      await getChatHistory();
-    } catch (e) {
-      console.error("delete chats error", e);
-    }
-  };
-
   const newChat = (e: React.MouseEvent | void) => {
     //e && e.target.blur();
     setIsMessageDeleteMode(false);
@@ -260,39 +244,18 @@ function PlayGround() {
       console.error("getSettings() error", e);
     }
   };
-  const displayChat = async (chatid: string, updateHistory = true) => {
-    try {
-      if (!chats[chatid]) {
-        const query = `
-        query($chatid:String!) {
-          getChatDetail(chatid: $chatid) {
-            chat {
-              role content done dtm model
-            }
-          }
-        }`;
-        const variables = { chatid };
-        const data = await fetchAppSync({ query, variables });
-        setChats((chats: Chats) => {
-          chats[chatid] = data?.getChatDetail?.chat ? data.getChatDetail.chat : [];
-          return chats;
-        });
-      }
-      setChatid(chatid);
-      //if (updateHistory) history.pushState(null, null, `${new URL(window.location.href).origin}?c=${chatid}`);
-      if (updateHistory) router.push(`/?c=${chatid}`);
-    } catch (e) {
-      console.error("displayChat() error", e);
-    }
-  };
 
   // useChat フックを初期化
-  const { getChatHistory, saveChat } = useChat({
+  const { getChatHistory, saveChat, deleteChats, displayChat } = useChat({
     isChatsDeleteMode,
     chatHistoryLastEvaluatedKey,
     setChatHistory,
     setChatHistoryLastEvaluatedKey,
     fetchAppSync,
+    setChats,
+    chats,
+    router,
+    setChatid,
   });
 
   const onScroll = () => {
@@ -463,6 +426,7 @@ function PlayGround() {
       setSidebarDisplay(false);
     }
   };
+
   const toggleSidebar = () => {
     const content = sidebarContent === "history" ? "edit" : "history";
     setSidebarContent(content);

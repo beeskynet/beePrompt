@@ -9,7 +9,7 @@ interface UseChatProps {
   chatHistoryLastEvaluatedKey: string;
   setChatHistoryLastEvaluatedKey: (key: string) => void;
   fetchAppSync: (params: { query: string; variables?: Dict<any> }) => Promise<any>;
-  setChats: (callback: (chats: Dict<Message[]>) => Dict<Message[]>) => void;
+  updateChats: (callback: (chats: Dict<Message[]>) => Dict<Message[]>) => void;
   chats: Dict<Message[]>;
   router: any;
   setChatid: (chatid: string) => void;
@@ -24,7 +24,7 @@ export const useChat = ({
   chatHistoryLastEvaluatedKey,
   setChatHistoryLastEvaluatedKey,
   fetchAppSync,
-  setChats,
+  updateChats,
   chats,
   router,
   setChatid,
@@ -123,7 +123,7 @@ export const useChat = ({
         }`;
         const variables = { chatid };
         const data = await fetchAppSync({ query, variables });
-        setChats((chats) => {
+        updateChats((chats) => {
           chats[chatid] = data?.getChatDetail?.chat ? data.getChatDetail.chat : [];
           return chats;
         });

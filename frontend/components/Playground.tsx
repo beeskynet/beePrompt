@@ -30,7 +30,7 @@ interface WebSocketMap {
 interface Dict<T> {
   [key: string]: T;
 }
-let chats: Chats = {};
+
 let chatid = "";
 function PlayGround() {
   useOnWindowRefocus(async () => {
@@ -41,12 +41,19 @@ function PlayGround() {
     }
   });
   const [userInput, setUserInput] = useState("");
-  const [_chats, _setChats] = useAtom(AppAtoms.chats);
-  const setChats = (func: Function) => {
-    chats = func(chats);
-    _setChats(JSON.parse(JSON.stringify(chats)));
-    _chats; // 表示更新用
+  const [chats, setChats] = useAtom(AppAtoms.chats);
+  const chatsRef = useRef<Chats>(chats);
+
+  const updateChats = (func: Function) => {
+    const updatedChats = func(chats);
+    chatsRef.current = updatedChats;
+    setChats(JSON.parse(JSON.stringify(updatedChats)));
   };
+
+  useEffect(() => {
+    chatsRef.current = chats;
+  }, [chats]);
+
   const [messagesOnDeleteMode, setMessagesOnDeleteMode] = useAtom(AppAtoms.messagesOnDeleteMode);
   const [chatsOnDeleteMode, setChatsOnDeleteMode] = useState<Message[]>([]);
   const [chatidsForDelete, setChatsidsForDelete] = useState<string[]>([]);
@@ -98,7 +105,7 @@ function PlayGround() {
 
   systemInputRef.current = systemInput;
   const setChatsEmptyMessages = (chatid: string) => {
-    setChats((chats: Chats) => {
+    updateChats((chats: Chats) => {
       chats[chatid] = [];
       return chats;
     });
@@ -122,7 +129,7 @@ function PlayGround() {
         console.error("想定外のレスポンス形式", event.data);
       } else if (content !== undefined) {
         // メッセージ追記
-        setChats((chats: Chats) => {
+        updateChats((chats: Chats) => {
           const messages = chats[chatid];
           const tgtAssMsg = messages.filter((msg: Message) => msg.role === "assistant" && dtm === msg.dtm);
           if (!tgtAssMsg.length) return chats;
@@ -141,13 +148,13 @@ function PlayGround() {
         setWaitingMap((waitingMap: WebSocketMap) => ({ ...waitingMap, [dtm]: 0 }));
         cleanupWebSocket(dtm);
         console.info(event.data); // 利用料等情報
-        setChats((chats: Chats) => {
+        updateChats((chats: Chats) => {
           const messages = chats[chatid];
           const updatedMsgs = messages.map((msg: Message) => (![dtm, userDtm].includes(msg.dtm) ? msg : { ...msg, done }));
           chats[chatid] = updatedMsgs;
           return chats;
         });
-        await saveChat(chatid, chats[chatid], systemInputRef.current);
+        await saveChat(chatid, chatsRef.current[chatid], systemInputRef.current);
       } else {
         interface Dict<T> {
           [key: string]: T;
@@ -168,7 +175,7 @@ function PlayGround() {
           console.error("想定外のレスポンス形式", event.data);
           chatErrorMessage = "An error happend.";
         }
-        setChats((chats: Chats) => {
+        updateChats((chats: Chats) => {
           const messages = chats[chatid];
           const updatedMsgs = messages.map((msg: Message) =>
             dtm !== msg.dtm || msg.role === "user" ? msg : { ...msg, content: chatErrorMessage, isError: true },
@@ -250,8 +257,8 @@ function PlayGround() {
     chatHistoryLastEvaluatedKey,
     setChatHistoryLastEvaluatedKey,
     fetchAppSync,
-    setChats,
-    chats,
+    updateChats,
+    chats: chatsRef.current,
     router,
     setChatid,
   });
@@ -351,7 +358,7 @@ function PlayGround() {
     });
     // ユーザーメッセージ追加
     const userDtm = new Date().toISOString();
-    setChats((chats: Chats) => {
+    updateChats((chats: Chats) => {
       const messages = chats[chatid];
       chats[chatid] = [...messages, { role: "user", content: userInput, dtm: userDtm }];
       return chats;
@@ -360,7 +367,7 @@ function PlayGround() {
     const submit = async (model: string, userDtm: string) => {
       try {
         const dtm = new Date().toISOString();
-        setChats((chats: Chats) => {
+        updateChats((chats: Chats) => {
           const messages = chats[chatid];
           chats[chatid] = [...messages, { role: "assistant", model: model, content: null, dtm }];
           return chats;
@@ -386,7 +393,13 @@ function PlayGround() {
           temperatureCohere: temperatureCohere,
           // topPClaude: topPClaude,
           // topKClaude: topKClaude,
-          messages: chats[chatid].map((msg: Message) => ({ role: msg.role, dtm: msg.dtm, model: msg.model, content: msg.content, done: msg.done })),
+          messages: chatsRef.current[chatid].map((msg: Message) => ({
+            role: msg.role,
+            dtm: msg.dtm,
+            model: msg.model,
+            content: msg.content,
+            done: msg.done,
+          })),
           model: model,
           chatid,
           dtm,
@@ -462,7 +475,7 @@ function PlayGround() {
             reset();
           }
           if (e.key === "Enter") {
-            await saveChat(chatid + "", chats[chatid + ""], systemInput, title);
+            await saveChat(chatid + "", chatsRef.current[chatid + ""], systemInput, title);
             reset();
           }
         }}
@@ -471,7 +484,7 @@ function PlayGround() {
     );
   };
 
-  const msgsOnDisplay = !isMessageDeleteMode ? chats[chatid] : messagesOnDeleteMode;
+  const msgsOnDisplay = !isMessageDeleteMode ? chatsRef.current[chatid] : messagesOnDeleteMode;
   const chatsOnDisplay = !isChatsDeleteMode ? chatHistory : chatsOnDeleteMode;
   return (
     <div id="screen-outline" className="flex flex-col md:h-screen p-2">
@@ -660,7 +673,7 @@ function PlayGround() {
                   // 応答中状態を破棄
                   setWaitingMap({});
                   // 中断メッセージの表示(少しでも応答メッセージがあれば上書きはしない)
-                  setChats((chats: Chats) => {
+                  updateChats((chats: Chats) => {
                     const messages = chats[chatid];
                     const updatedMsgs = messages.map((msg) =>
                       msg.role === "user" || msg.content ? msg : { ...msg, content: "応答の受信が中断されました。", isError: true },
@@ -677,14 +690,14 @@ function PlayGround() {
                   name="delete"
                   disabled={isResponding}
                   onClick={async () => {
-                    if (chats[chatid].length === 0) return;
+                    if (chatsRef.current[chatid].length === 0) return;
                     if (settings.appSettings.copyChatOnMessageDeleteMode) {
                       // チャットメッージを削除モードに入る際にメッセージをコピーする
                       const newTitle = "copy_" + chatHistory.filter((chat: Message) => chat.chatid === chatid)[0].title;
                       const uuid = self.crypto.randomUUID();
-                      await saveChat(uuid, chats[chatid], systemInput, newTitle);
+                      await saveChat(uuid, chatsRef.current[chatid], systemInput, newTitle);
                     }
-                    setMessagesOnDeleteMode(JSON.parse(JSON.stringify(chats[chatid])));
+                    setMessagesOnDeleteMode(JSON.parse(JSON.stringify(chatsRef.current[chatid])));
                     setIsMessageDeleteMode(true);
                   }}
                 />
@@ -710,7 +723,7 @@ function PlayGround() {
                 <MaterialButton
                   name="done"
                   onClick={async () => {
-                    setChats((chats: Chats) => {
+                    updateChats((chats: Chats) => {
                       chats[chatid] = messagesOnDeleteMode;
                       return chats;
                     });

@@ -31,7 +31,6 @@ interface Dict<T> {
   [key: string]: T;
 }
 
-let chatid = "";
 function PlayGround() {
   useOnWindowRefocus(async () => {
     const session = await fetchAuthSession();
@@ -61,12 +60,7 @@ function PlayGround() {
   const [autoScroll, setAutoScroll] = useState(true);
   const [sidebarContent, setSidebarContent] = useState("history");
   const [sidebarDisplay, setSidebarDisplay] = useState(true);
-  const [_chatid, _setChatid] = useAtom(AppAtoms.chatid);
-  const setChatid = (newChatid: string) => {
-    chatid = newChatid;
-    _setChatid(newChatid);
-  };
-
+  const [chatid, setChatid] = useAtom(AppAtoms.chatid);
   const [chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
   const [isAdmin, setIsAdmin] = useState(false);
   const selectedModel = useAtomValue(AppAtoms.selectedModel);
@@ -89,8 +83,6 @@ function PlayGround() {
   const textareaContRef = useRef(null);
   const autoScrollRef: { current: boolean | undefined } = useRef();
   autoScrollRef.current = autoScroll;
-  const chatidRef: { current: string | undefined } = useRef();
-  chatidRef.current = chatid;
   const systemInputRef: { current: string | undefined } = useRef();
 
   const [temperatureGpt, setTemperatureGpt] = useState(1);

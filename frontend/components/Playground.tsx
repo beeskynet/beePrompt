@@ -44,7 +44,7 @@ function PlayGround() {
   const chatsRef = useRef<Chats>(chats);
 
   const updateChats = (func: Function) => {
-    const updatedChats = func(chats);
+    const updatedChats = func(chatsRef.current);
     chatsRef.current = updatedChats;
     setChats(JSON.parse(JSON.stringify(updatedChats)));
   };

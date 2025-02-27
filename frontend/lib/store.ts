@@ -79,7 +79,7 @@ const isResponding = atom((get) => Object.values(get(waitingMap) as Array<number
 const isMessageDeleteMode = atom(false);
 const isChatsDeleteMode = atom(false);
 const messagesOnDeleteMode = atom([]);
-const chats = atom<Chats>({}); // 表示用のチャットアトム
+const frontChat = atom<Message[]>([]); // 表示用のチャットアトム
 const richChats = atom<Chats>({}); // 並列処理用の内部状態を持つチャットアトム
 const chatHistory = atom<Message[]>([]);
 const chatid = atom("");
@@ -108,7 +108,7 @@ export const AppAtoms = {
   messagesOnDeleteMode,
   drawerOpen,
   settings,
-  chats,
+  frontChat,
   richChats,
   chatHistory,
   chatid,

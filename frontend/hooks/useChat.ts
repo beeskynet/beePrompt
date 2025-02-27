@@ -31,6 +31,7 @@ export const useChat = ({
 }: UseChatProps) => {
   const [isChatsDeleteMode, _setIsChatsDeleteMode] = useAtom(AppAtoms.isChatsDeleteMode);
   const [_chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
+  const [_, setFrontChat] = useAtom(AppAtoms.frontChat);
 
   /**
    * チャット履歴を取得する
@@ -123,11 +124,19 @@ export const useChat = ({
         }`;
         const variables = { chatid };
         const data = await fetchAppSync({ query, variables });
+        const chatData = data?.getChatDetail?.chat ? data.getChatDetail.chat : [];
+
         setChats((chats) => {
-          chats[chatid] = data?.getChatDetail?.chat ? data.getChatDetail.chat : [];
+          chats[chatid] = chatData;
           return chats;
         });
+
+        // frontChatも更新
+        setFrontChat(JSON.parse(JSON.stringify(chatData)));
+      } else {
+        setFrontChat(JSON.parse(JSON.stringify(chats[chatid])));
       }
+
       setChatid(chatid);
       if (updateHistory) router.push(`/?c=${chatid}`);
     } catch (e) {

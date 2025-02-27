@@ -36,13 +36,13 @@ function PlayGround() {
     }
   });
   const [userInput, setUserInput] = useState("");
-  const [_chatsState, setChatsState] = useAtom(AppAtoms.chats); // 画面表示用チャット内容
+  const [frontChat, setFrontChat] = useAtom(AppAtoms.frontChat); // 画面表示用チャット内容
   const [richChats, setRichChats] = useAtom(AppAtoms.richChats); // 並列メッセージ受信によるメッセージ欠落を防ぐため、内部的にチャット内容を保持
 
   const setChats = (func: Function) => {
     const newRichChats = func(richChats);
     setRichChats(newRichChats);
-    setChatsState(JSON.parse(JSON.stringify(newRichChats)));
+    setFrontChat(JSON.parse(JSON.stringify(newRichChats[pagesChatIdRef.current] || [])));
   };
 
   const [messagesOnDeleteMode, setMessagesOnDeleteMode] = useAtom(AppAtoms.messagesOnDeleteMode);
@@ -58,6 +58,10 @@ function PlayGround() {
   const setPagesChatId = (newChatid: string) => {
     pagesChatIdRef.current = newChatid;
     setPagesChatIdState(newChatid);
+    // チャットIDが変更されたらfrontChatも更新
+    if (richChats[newChatid]) {
+      setFrontChat(JSON.parse(JSON.stringify(richChats[newChatid])));
+    }
   };
 
   const [chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
@@ -477,7 +481,7 @@ function PlayGround() {
     );
   };
 
-  const msgsOnDisplay = !isMessageDeleteMode ? richChats[pagesChatIdRef.current] : messagesOnDeleteMode;
+  const msgsOnDisplay = !isMessageDeleteMode ? frontChat : messagesOnDeleteMode;
   const chatsOnDisplay = !isChatsDeleteMode ? chatHistory : chatsOnDeleteMode;
   return (
     <div id="screen-outline" className="flex flex-col md:h-screen p-2">

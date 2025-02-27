@@ -43,7 +43,6 @@ class Model(Enum):
     claude_3_opus = "claude-3-opus-20240229"
     claude_3_sonnet = "claude-3-sonnet-20240229"
     claude_3_5_sonnet = "claude-3-5-sonnet-20241022"
-    claude_3_7_sonnet = "claude-3-7-sonnet-20250219"
     claude_3_haiku = "claude-3-haiku-20240307"
     claude_3_5_haiku = "claude-3-5-haiku-20241022"
     # cohere
@@ -74,7 +73,6 @@ PRICE = {
     Model.claude_3_5_haiku.value: {"in": 0.001, "out": 0.005},
     Model.claude_3_sonnet.value: {"in": 0.003, "out": 0.015},
     Model.claude_3_5_sonnet.value: {"in": 0.003, "out": 0.015},
-    Model.claude_3_7_sonnet.value: {"in": 0.003, "out": 0.015},
     Model.claude_3_opus.value: {"in": 0.015, "out": 0.075},
     # command #
     Model.command_r_plus.value: {"in": 0.0, "out": 0.0},

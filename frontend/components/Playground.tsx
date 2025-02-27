@@ -6,7 +6,7 @@ import { Button, Input } from "@material-tailwind/react";
 import { fetchAuthSession, signOut } from "aws-amplify/auth";
 import { useRouter, usePathname } from "next/navigation";
 import { withAuthenticator } from "@aws-amplify/ui-react";
-import { AppAtoms, Message } from "lib/store";
+import { AppAtoms, Message, Chats } from "lib/store";
 import { apiUrls } from "lib/environments";
 import { useAtom, useSetAtom, useAtomValue } from "jotai";
 import MaterialButton from "./MaterialButton";
@@ -19,10 +19,6 @@ import MobileDrawer from "./MobileDrawer";
 import useOnWindowRefocus from "lib/useOnWindowReforcus";
 import { useChat } from "../hooks/useChat";
 
-interface Chats {
-  [key: string]: Message[];
-}
-
 interface WebSocketMap {
   [key: string]: WebSocket;
 }
@@ -30,7 +26,7 @@ interface WebSocketMap {
 interface Dict<T> {
   [key: string]: T;
 }
-let chats: Chats = {};
+
 function PlayGround() {
   useOnWindowRefocus(async () => {
     const session = await fetchAuthSession();
@@ -40,12 +36,15 @@ function PlayGround() {
     }
   });
   const [userInput, setUserInput] = useState("");
-  const [_chats, _setChats] = useAtom(AppAtoms.chats);
+  const [_chatsState, setChatsState] = useAtom(AppAtoms.chats); // 画面表示用チャット内容
+  const [richChats, setRichChats] = useAtom(AppAtoms.richChats); // 並列メッセージ受信によるメッセージ欠落を防ぐため、内部的にチャット内容を保持
+
   const setChats = (func: Function) => {
-    chats = func(chats);
-    _setChats(JSON.parse(JSON.stringify(chats)));
-    _chats; // 表示更新用
+    const newRichChats = func(richChats);
+    setRichChats(newRichChats);
+    setChatsState(JSON.parse(JSON.stringify(newRichChats)));
   };
+
   const [messagesOnDeleteMode, setMessagesOnDeleteMode] = useAtom(AppAtoms.messagesOnDeleteMode);
   const [chatsOnDeleteMode, setChatsOnDeleteMode] = useState<Message[]>([]);
   const [chatidsForDelete, setChatsidsForDelete] = useState<string[]>([]);
@@ -146,7 +145,7 @@ function PlayGround() {
           chats[chatid] = updatedMsgs;
           return chats;
         });
-        await saveChat(chatid, chats[chatid], systemInputRef.current);
+        await saveChat(chatid, richChats[chatid], systemInputRef.current);
       } else {
         interface Dict<T> {
           [key: string]: T;
@@ -250,7 +249,7 @@ function PlayGround() {
     setChatHistoryLastEvaluatedKey,
     fetchAppSync,
     setChats,
-    chats,
+    chats: richChats,
     router,
     setChatid: setPagesChatId,
   });
@@ -387,7 +386,7 @@ function PlayGround() {
           temperatureCohere: temperatureCohere,
           // topPClaude: topPClaude,
           // topKClaude: topKClaude,
-          messages: chats[pagesChatIdRef.current].map((msg: Message) => ({
+          messages: richChats[pagesChatIdRef.current].map((msg: Message) => ({
             role: msg.role,
             dtm: msg.dtm,
             model: msg.model,
@@ -469,7 +468,7 @@ function PlayGround() {
             reset();
           }
           if (e.key === "Enter") {
-            await saveChat(chatid + "", chats[chatid + ""], systemInput, title);
+            await saveChat(chatid + "", richChats[chatid + ""], systemInput, title);
             reset();
           }
         }}
@@ -478,7 +477,7 @@ function PlayGround() {
     );
   };
 
-  const msgsOnDisplay = !isMessageDeleteMode ? chats[pagesChatIdRef.current] : messagesOnDeleteMode;
+  const msgsOnDisplay = !isMessageDeleteMode ? richChats[pagesChatIdRef.current] : messagesOnDeleteMode;
   const chatsOnDisplay = !isChatsDeleteMode ? chatHistory : chatsOnDeleteMode;
   return (
     <div id="screen-outline" className="flex flex-col md:h-screen p-2">
@@ -686,14 +685,14 @@ function PlayGround() {
                   name="delete"
                   disabled={isResponding}
                   onClick={async () => {
-                    if (chats[pagesChatIdRef.current].length === 0) return;
+                    if (richChats[pagesChatIdRef.current].length === 0) return;
                     if (settings.appSettings.copyChatOnMessageDeleteMode) {
                       // チャットメッージを削除モードに入る際にメッセージをコピーする
                       const newTitle = "copy_" + chatHistory.filter((chat: Message) => chat.chatid === pagesChatIdRef.current)[0].title;
                       const uuid = self.crypto.randomUUID();
-                      await saveChat(uuid, chats[pagesChatIdRef.current], systemInput, newTitle);
+                      await saveChat(uuid, richChats[pagesChatIdRef.current], systemInput, newTitle);
                     }
-                    setMessagesOnDeleteMode(JSON.parse(JSON.stringify(chats[pagesChatIdRef.current])));
+                    setMessagesOnDeleteMode(JSON.parse(JSON.stringify(richChats[pagesChatIdRef.current])));
                     setIsMessageDeleteMode(true);
                   }}
                 />

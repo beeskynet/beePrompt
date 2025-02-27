@@ -38,6 +38,11 @@ export interface Message {
   done?: boolean;
 }
 
+// チャットデータのインターフェース
+export interface Chats {
+  [key: string]: Message[];
+}
+
 // セレクトボックス様モデルリスト
 export const models: { [key: string]: string } = { ...modelsGens };
 // 古いモデルを消す
@@ -74,7 +79,8 @@ const isResponding = atom((get) => Object.values(get(waitingMap) as Array<number
 const isMessageDeleteMode = atom(false);
 const isChatsDeleteMode = atom(false);
 const messagesOnDeleteMode = atom([]);
-const chats = atom({});
+const chats = atom<Chats>({}); // 表示用のチャットアトム
+const richChats = atom<Chats>({}); // 並列処理用の内部状態を持つチャットアトム
 const chatHistory = atom<Message[]>([]);
 const chatid = atom("");
 const systemInput = atom("");
@@ -103,6 +109,7 @@ export const AppAtoms = {
   drawerOpen,
   settings,
   chats,
+  richChats,
   chatHistory,
   chatid,
   systemInput,

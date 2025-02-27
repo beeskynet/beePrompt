@@ -31,7 +31,6 @@ interface Dict<T> {
   [key: string]: T;
 }
 let chats: Chats = {};
-let chatid = "";
 function PlayGround() {
   useOnWindowRefocus(async () => {
     const session = await fetchAuthSession();
@@ -54,10 +53,12 @@ function PlayGround() {
   const [autoScroll, setAutoScroll] = useState(true);
   const [sidebarContent, setSidebarContent] = useState("history");
   const [sidebarDisplay, setSidebarDisplay] = useState(true);
-  const [_chatid, _setChatid] = useAtom(AppAtoms.chatid);
-  const setChatid = (newChatid: string) => {
-    chatid = newChatid;
-    _setChatid(newChatid);
+  // 現在表示中のチャットIDを管理するref
+  const pagesChatIdRef = useRef<string>("");
+  const [_pagesChatIdState, setPagesChatIdState] = useAtom(AppAtoms.chatid);
+  const setPagesChatId = (newChatid: string) => {
+    pagesChatIdRef.current = newChatid;
+    setPagesChatIdState(newChatid);
   };
 
   const [chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
@@ -82,8 +83,6 @@ function PlayGround() {
   const textareaContRef = useRef(null);
   const autoScrollRef: { current: boolean | undefined } = useRef();
   autoScrollRef.current = autoScroll;
-  const chatidRef: { current: string | undefined } = useRef();
-  chatidRef.current = chatid;
   const systemInputRef: { current: string | undefined } = useRef();
 
   const [temperatureGpt, setTemperatureGpt] = useState(1);
@@ -195,7 +194,7 @@ function PlayGround() {
     } else {
       router.push(`/?c=${uuid}`);
     }
-    setChatid(uuid);
+    setPagesChatId(uuid);
     setChatsEmptyMessages(uuid);
     if (!window.matchMedia("(min-width: 768px)").matches) {
       setSidebarDisplay(false);
@@ -253,7 +252,7 @@ function PlayGround() {
     setChats,
     chats,
     router,
-    setChatid,
+    setChatid: setPagesChatId,
   });
 
   const onScroll = () => {
@@ -282,7 +281,9 @@ function PlayGround() {
       if (!gotChatId) {
         newChat();
       } else {
-        setChatid(gotChatId);
+        setPagesChatId(gotChatId);
+        // pagesChatIdRefも明示的に初期化
+        pagesChatIdRef.current = gotChatId;
         displayChat(gotChatId);
       }
 
@@ -294,7 +295,7 @@ function PlayGround() {
         const url = new URL(window.location.href);
         if (url.pathname !== "/" || !url.searchParams.has("c")) return;
         const gotChatId = getUrlChatid() + "";
-        setChatid(gotChatId);
+        setPagesChatId(gotChatId);
         displayChat(gotChatId, false); // history.stateを更新しない
       });
     };
@@ -344,16 +345,16 @@ function PlayGround() {
     }
     // チャット履歴欄に追加
     setChatHistory((chatHistory: Message[]) => {
-      if (chatHistory.filter((chat: Message) => chat.chatid === chatid).length > 0) {
+      if (chatHistory.filter((chat: Message) => chat.chatid === pagesChatIdRef.current).length > 0) {
         return chatHistory;
       }
-      return [{ chatid, title: "...waiting AI response..." }, ...chatHistory];
+      return [{ chatid: pagesChatIdRef.current, title: "...waiting AI response..." }, ...chatHistory];
     });
     // ユーザーメッセージ追加
     const userDtm = new Date().toISOString();
     setChats((chats: Chats) => {
-      const messages = chats[chatid];
-      chats[chatid] = [...messages, { role: "user", content: userInput, dtm: userDtm }];
+      const messages = chats[pagesChatIdRef.current];
+      chats[pagesChatIdRef.current] = [...messages, { role: "user", content: userInput, dtm: userDtm }];
       return chats;
     });
     // サブミット
@@ -361,8 +362,8 @@ function PlayGround() {
       try {
         const dtm = new Date().toISOString();
         setChats((chats: Chats) => {
-          const messages = chats[chatid];
-          chats[chatid] = [...messages, { role: "assistant", model: model, content: null, dtm }];
+          const messages = chats[pagesChatIdRef.current];
+          chats[pagesChatIdRef.current] = [...messages, { role: "assistant", model: model, content: null, dtm }];
           return chats;
         });
         scrollToBottom();
@@ -386,9 +387,15 @@ function PlayGround() {
           temperatureCohere: temperatureCohere,
           // topPClaude: topPClaude,
           // topKClaude: topKClaude,
-          messages: chats[chatid].map((msg: Message) => ({ role: msg.role, dtm: msg.dtm, model: msg.model, content: msg.content, done: msg.done })),
+          messages: chats[pagesChatIdRef.current].map((msg: Message) => ({
+            role: msg.role,
+            dtm: msg.dtm,
+            model: msg.model,
+            content: msg.content,
+            done: msg.done,
+          })),
           model: model,
-          chatid,
+          chatid: pagesChatIdRef.current,
           dtm,
           userDtm,
           jwt,
@@ -471,7 +478,7 @@ function PlayGround() {
     );
   };
 
-  const msgsOnDisplay = !isMessageDeleteMode ? chats[chatid] : messagesOnDeleteMode;
+  const msgsOnDisplay = !isMessageDeleteMode ? chats[pagesChatIdRef.current] : messagesOnDeleteMode;
   const chatsOnDisplay = !isChatsDeleteMode ? chatHistory : chatsOnDeleteMode;
   return (
     <div id="screen-outline" className="flex flex-col md:h-screen p-2">
@@ -563,8 +570,8 @@ function PlayGround() {
                     await getChatHistory();
                     setIsChatsDeleteMode(false); // 履歴を消した後に表示切り替え
                     setChatsOnDeleteMode([]);
-                    if (chatidsForDelete.includes(chatid)) {
-                      setChatsEmptyMessages(chatid);
+                    if (chatidsForDelete.includes(pagesChatIdRef.current)) {
+                      setChatsEmptyMessages(pagesChatIdRef.current);
                     }
                   }}
                 />
@@ -593,7 +600,7 @@ function PlayGround() {
                       blur
                     />
                   ) : null}
-                  {!isChatsDeleteMode && chatid === chat.chatid ? (
+                  {!isChatsDeleteMode && pagesChatIdRef.current === chat.chatid ? (
                     <MaterialButton
                       name="edit"
                       className="absolute top-0 right-0 invisible"
@@ -607,7 +614,9 @@ function PlayGround() {
                   {chatidOnEditTitle !== chat.chatid ? (
                     <div
                       key={index}
-                      className={`pl-3 p-1 cursor-pointer whitespace-nowrap ${chat.chatid === chatid ? "bg-gray-200" : "hover:bg-gray-100"}`}
+                      className={`pl-3 p-1 cursor-pointer whitespace-nowrap ${
+                        chat.chatid === pagesChatIdRef.current ? "bg-gray-200" : "hover:bg-gray-100"
+                      }`}
                       onClick={clickChatHistoryLine(chat.chatid + "")}
                     >
                       <span className="text-sm">{chat.title}</span>
@@ -661,11 +670,11 @@ function PlayGround() {
                   setWaitingMap({});
                   // 中断メッセージの表示(少しでも応答メッセージがあれば上書きはしない)
                   setChats((chats: Chats) => {
-                    const messages = chats[chatid];
+                    const messages = chats[pagesChatIdRef.current];
                     const updatedMsgs = messages.map((msg) =>
                       msg.role === "user" || msg.content ? msg : { ...msg, content: "応答の受信が中断されました。", isError: true },
                     );
-                    chats[chatid] = updatedMsgs;
+                    chats[pagesChatIdRef.current] = updatedMsgs;
                     return chats;
                   });
                 }}
@@ -677,14 +686,14 @@ function PlayGround() {
                   name="delete"
                   disabled={isResponding}
                   onClick={async () => {
-                    if (chats[chatid].length === 0) return;
+                    if (chats[pagesChatIdRef.current].length === 0) return;
                     if (settings.appSettings.copyChatOnMessageDeleteMode) {
                       // チャットメッージを削除モードに入る際にメッセージをコピーする
-                      const newTitle = "copy_" + chatHistory.filter((chat: Message) => chat.chatid === chatid)[0].title;
+                      const newTitle = "copy_" + chatHistory.filter((chat: Message) => chat.chatid === pagesChatIdRef.current)[0].title;
                       const uuid = self.crypto.randomUUID();
-                      await saveChat(uuid, chats[chatid], systemInput, newTitle);
+                      await saveChat(uuid, chats[pagesChatIdRef.current], systemInput, newTitle);
                     }
-                    setMessagesOnDeleteMode(JSON.parse(JSON.stringify(chats[chatid])));
+                    setMessagesOnDeleteMode(JSON.parse(JSON.stringify(chats[pagesChatIdRef.current])));
                     setIsMessageDeleteMode(true);
                   }}
                 />
@@ -711,11 +720,11 @@ function PlayGround() {
                   name="done"
                   onClick={async () => {
                     setChats((chats: Chats) => {
-                      chats[chatid] = messagesOnDeleteMode;
+                      chats[pagesChatIdRef.current] = messagesOnDeleteMode;
                       return chats;
                     });
                     setIsMessageDeleteMode(false);
-                    await saveChat(chatid, messagesOnDeleteMode, systemInput);
+                    await saveChat(pagesChatIdRef.current, messagesOnDeleteMode, systemInput);
                   }}
                 />
                 <MaterialButton

@@ -16,6 +16,7 @@ import ClaudeSettingsDrawer from "./ClaudeSettingsDrawer";
 import CohereSettingsDrawer from "./CohereSettingsDrawer";
 import MenuDrawer from "./MenuDrawer";
 import MobileDrawer from "./MobileDrawer";
+import ChatHistory from "./ChatHistory";
 import useOnWindowRefocus from "lib/useOnWindowReforcus";
 import { useChat } from "../hooks/useChat";
 import { useWebSocket } from "../hooks/useWebSocket";
@@ -49,7 +50,6 @@ function Playground() {
 
   const [messagesOnDeleteMode, setMessagesOnDeleteMode] = useAtom(AppAtoms.messagesOnDeleteMode);
   const [chatsOnDeleteMode, setChatsOnDeleteMode] = useState<Message[]>([]);
-  const [chatidsForDelete, setChatsidsForDelete] = useState<string[]>([]);
   const [systemInput, setSystemInput] = useState("");
   const [autoScroll, setAutoScroll] = useState(true);
   const [sidebarContent, setSidebarContent] = useState("history");
@@ -75,7 +75,6 @@ function Playground() {
   const isResponding = useAtomValue(AppAtoms.isResponding);
   const [isMessageDeleteMode, setIsMessageDeleteMode] = useAtom(AppAtoms.isMessageDeleteMode);
   const [isChatsDeleteMode, setIsChatsDeleteMode] = useAtom(AppAtoms.isChatsDeleteMode);
-  const [chatidOnEditTitle, setChatidOnEditTitle] = useState("");
   const [chatHistoryLastEvaluatedKey, setChatHistoryLastEvaluatedKey] = useState("");
   const setOpenDrawer = useSetAtom(AppAtoms.drawerOpen);
   const router = useRouter();
@@ -107,7 +106,7 @@ function Playground() {
       return chats;
     });
   };
-  
+
   const fetchAppSync = async ({
     query,
     variables,
@@ -128,7 +127,7 @@ function Playground() {
     }
     return resJson?.data;
   };
-  
+
   // useChat フックを初期化
   const { getChatHistory, saveChat, deleteChats, displayChat } = useChat({
     chatHistoryLastEvaluatedKey,
@@ -160,11 +159,7 @@ function Playground() {
   };
 
   // WebSocketフックを初期化
-  const { 
-    onMessage, 
-    disconnectAllWebSockets, 
-    createWebSocketConnection 
-  } = useWebSocket({
+  const { onMessage, disconnectAllWebSockets, createWebSocketConnection } = useWebSocket({
     setChats,
     saveChat,
     scrollToBottom,
@@ -301,14 +296,14 @@ function Playground() {
       chats[pagesChatIdRef.current] = [...messages, { role: "user", content: userInput, dtm: userDtm }];
       return chats;
     });
-    
+
     // 温度や罰則の設定をまとめる
     const temperature = {
       gpt: temperatureGpt,
       claude: temperatureClaude,
       cohere: temperatureCohere,
     };
-    
+
     const penalties = {
       topP: topPGpt,
       frequencyPenalty: frequencyPenaltyGpt,
@@ -334,21 +329,22 @@ function Playground() {
       // 並列処理の場合
       for (const [i, model] of Object.entries(Object.keys(submissionStatus))) {
         if (submissionStatus[model]) {
-          setTimeout(() => 
-            submit({
-              model,
-              userDtm,
-              userInput,
-              systemInput,
-              pagesChatIdRef,
-              richChats,
-              setChats,
-              scrollToBottom,
-              createWebSocketConnection,
-              temperature,
-              penalties,
-            }),
-            parseInt(i) * 100
+          setTimeout(
+            () =>
+              submit({
+                model,
+                userDtm,
+                userInput,
+                systemInput,
+                pagesChatIdRef,
+                richChats,
+                setChats,
+                scrollToBottom,
+                createWebSocketConnection,
+                temperature,
+                penalties,
+              }),
+            parseInt(i) * 100,
           );
         }
       }
@@ -369,47 +365,8 @@ function Playground() {
   const toggleDisplaySidebar = () => {
     setSidebarDisplay(!sidebarDisplay);
   };
-  const ChatTitleEdit = ({ chat }: { chat: Message }) => {
-    const { chatid } = chat;
-    const origTitle = chat.title + "";
-    const [title, setTitle] = useState(origTitle);
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-      if (!inputRef.current) return;
-      inputRef.current.focus();
-      inputRef.current.setSelectionRange(origTitle.length, origTitle.length);
-    }, []);
-
-    const onChange = ({ target }: { target: HTMLInputElement }) => setTitle(target.value);
-    const reset = () => {
-      setChatidOnEditTitle("");
-    };
-    return (
-      <Input
-        className="!border !border-gray-300 bg-white text-gray-900 shadow-lg shadow-gray-900/5 ring-4 ring-transparent placeholder:text-gray-500 focus:!border-gray-900 focus:!border-t-gray-900 focus:ring-gray-900/10"
-        labelProps={{
-          className: "hidden",
-        }}
-        inputRef={inputRef}
-        value={title}
-        onChange={onChange}
-        onKeyDown={async (e) => {
-          if (e.key === "Escape") {
-            reset();
-          }
-          if (e.key === "Enter") {
-            await saveChat(chatid + "", richChats[chatid + ""], systemInput, title);
-            reset();
-          }
-        }}
-        onBlur={reset}
-      />
-    );
-  };
 
   const msgsOnDisplay = !isMessageDeleteMode ? frontChat : messagesOnDeleteMode;
-  const chatsOnDisplay = !isChatsDeleteMode ? chatHistory : chatsOnDeleteMode;
   return (
     <div id="screen-outline" className="flex flex-col md:h-screen p-2">
       {/* ヘッダーエリア */}
@@ -472,92 +429,21 @@ function Playground() {
               placeholder="SYSTEM input..."
             />
           </div>
-          {/* 履歴エリア */}
-          <div id="history-area" className={`h-full flex flex-col ${!sidebarDisplay || sidebarContent !== "history" ? "hidden" : ""} relative`}>
-            <p className="text-sm text-left m-2 mt-1 text-gray-500">HISTORY</p>
-            {!isChatsDeleteMode ? (
-              <MaterialButton
-                name="delete"
-                className="absolute top-0 right-0"
-                onClick={() => {
-                  setIsChatsDeleteMode(true);
-                  setChatsOnDeleteMode(chatHistory.map((chat: Message) => JSON.parse(JSON.stringify(chat))));
-                  setChatsidsForDelete([]);
-                }}
-              />
-            ) : (
-              <>
-                <MaterialButton
-                  name="done"
-                  className="absolute top-0 right-7"
-                  onClick={async () => {
-                    if (chatidsForDelete.length === 0) {
-                      setIsChatsDeleteMode(false);
-                      return;
-                    }
-                    setChatsidsForDelete([]); // 2重処理抑止のため最初に
-                    await deleteChats(chatidsForDelete);
-                    await getChatHistory();
-                    setIsChatsDeleteMode(false); // 履歴を消した後に表示切り替え
-                    setChatsOnDeleteMode([]);
-                    if (chatidsForDelete.includes(pagesChatIdRef.current)) {
-                      setChatsEmptyMessages(pagesChatIdRef.current);
-                    }
-                  }}
-                />
-                <MaterialButton
-                  name="cancel"
-                  className="absolute top-0 right-0"
-                  onClick={() => {
-                    setIsChatsDeleteMode(false);
-                    setChatsOnDeleteMode([]);
-                    setChatsidsForDelete([]);
-                  }}
-                />
-              </>
-            )}
-            <div className="overflow-x-hidden overflow-y-auto" ref={container} onScroll={onScroll}>
-              {chatsOnDisplay.map((chat: Message, index: number) => (
-                <div key={index} className="relative group">
-                  {isChatsDeleteMode ? (
-                    <MaterialButton
-                      name="delete"
-                      className="absolute top-0 right-0 "
-                      onClick={() => {
-                        setChatsOnDeleteMode((chats) => chats.filter((_chat: Message) => _chat.chatid !== chat.chatid));
-                        setChatsidsForDelete(chatidsForDelete.concat([chat.chatid + ""]));
-                      }}
-                      blur
-                    />
-                  ) : null}
-                  {!isChatsDeleteMode && pagesChatIdRef.current === chat.chatid ? (
-                    <MaterialButton
-                      name="edit"
-                      className="absolute top-0 right-0 invisible"
-                      groupHoverVisible
-                      onClick={() => {
-                        setChatidOnEditTitle(chat.chatid + "");
-                      }}
-                      blur
-                    />
-                  ) : null}
-                  {chatidOnEditTitle !== chat.chatid ? (
-                    <div
-                      key={index}
-                      className={`pl-3 p-1 cursor-pointer whitespace-nowrap ${
-                        chat.chatid === pagesChatIdRef.current ? "bg-gray-200" : "hover:bg-gray-100"
-                      }`}
-                      onClick={clickChatHistoryLine(chat.chatid + "")}
-                    >
-                      <span className="text-sm">{chat.title}</span>
-                    </div>
-                  ) : (
-                    <ChatTitleEdit chat={chat} />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+
+          {/* 履歴エリア - ChatHistoryコンポーネントに置き換え */}
+          <ChatHistory
+            pagesChatIdRef={pagesChatIdRef}
+            container={container}
+            onScroll={onScroll}
+            sidebarDisplay={sidebarDisplay}
+            sidebarContent={sidebarContent}
+            clickChatHistoryLine={clickChatHistoryLine}
+            deleteChats={deleteChats}
+            getChatHistory={getChatHistory}
+            setChatsEmptyMessages={setChatsEmptyMessages}
+            saveChat={saveChat}
+            systemInput={systemInput}
+          />
         </div>
         {/* USER・ASSISTANTメッセージエリア */}
         <div id="main-area" className="flex md:w-3/4">
@@ -584,12 +470,7 @@ function Playground() {
             </div>
           </div>
           <div id="tool-bar" className="flex flex-col align-start w-10 flex-shrink-0">
-            {isResponding ? (
-              <MaterialButton
-                name="block"
-                onClick={async () => disconnectAllWebSockets(pagesChatIdRef)}
-              />
-            ) : null}
+            {isResponding ? <MaterialButton name="block" onClick={async () => disconnectAllWebSockets(pagesChatIdRef)} /> : null}
             {!isMessageDeleteMode ? (
               <>
                 <MaterialButton

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, MutableRefObject } from "react";
 import UserAssistant from "./UserAssistant";
 import DropdownSelect from "./DropdownSelect";
-import { Button, Input } from "@material-tailwind/react";
+import { Button } from "@material-tailwind/react";
 import { fetchAuthSession, signOut } from "aws-amplify/auth";
 import { useRouter, usePathname } from "next/navigation";
 import { withAuthenticator } from "@aws-amplify/ui-react";
@@ -21,10 +21,6 @@ import useOnWindowRefocus from "lib/useOnWindowReforcus";
 import { useChat } from "../hooks/useChat";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useSubmit } from "../hooks/useSubmit";
-
-interface WebSocketMap {
-  [key: string]: WebSocket;
-}
 
 interface Dict<T> {
   [key: string]: T;
@@ -49,7 +45,6 @@ function Playground() {
   };
 
   const [messagesOnDeleteMode, setMessagesOnDeleteMode] = useAtom(AppAtoms.messagesOnDeleteMode);
-  const [chatsOnDeleteMode, setChatsOnDeleteMode] = useState<Message[]>([]);
   const [systemInput, setSystemInput] = useState("");
   const [autoScroll, setAutoScroll] = useState(true);
   const [sidebarContent, setSidebarContent] = useState("history");
@@ -71,16 +66,13 @@ function Playground() {
   const selectedModel = useAtomValue(AppAtoms.selectedModel);
   const isParallel = useAtomValue(AppAtoms.isParallel);
   const submissionStatus = useAtomValue(AppAtoms.submissionStatus);
-  const setWaitingMap = useSetAtom(AppAtoms.waitingMap);
   const isResponding = useAtomValue(AppAtoms.isResponding);
   const [isMessageDeleteMode, setIsMessageDeleteMode] = useAtom(AppAtoms.isMessageDeleteMode);
-  const [isChatsDeleteMode, setIsChatsDeleteMode] = useAtom(AppAtoms.isChatsDeleteMode);
   const [chatHistoryLastEvaluatedKey, setChatHistoryLastEvaluatedKey] = useState("");
   const setOpenDrawer = useSetAtom(AppAtoms.drawerOpen);
   const router = useRouter();
   const pathname = usePathname();
   const [settings, setSettings] = useAtom(AppAtoms.settings);
-  const [_, setWebsocketMap] = useState({});
 
   const userTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const systemTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -95,8 +87,6 @@ function Playground() {
   const [presencePenaltyGpt, setPresencePenaltyGpt] = useState(0);
   const [temperatureClaude, setTemperatureClaude] = useState(1);
   const [temperatureCohere, setTemperatureCohere] = useState(0.3);
-  //const [topPClaude, setTopPClaude] = useState(0.999);
-  //const [topKClaude, setTopKClaude] = useState(250);
   const container = useRef<HTMLDivElement | null>(null);
 
   systemInputRef.current = systemInput;
@@ -159,7 +149,7 @@ function Playground() {
   };
 
   // WebSocketフックを初期化
-  const { onMessage, disconnectAllWebSockets, createWebSocketConnection } = useWebSocket({
+  const { disconnectAllWebSockets, createWebSocketConnection } = useWebSocket({
     setChats,
     saveChat,
     scrollToBottom,
@@ -170,8 +160,7 @@ function Playground() {
   // Submitフックを初期化
   const { submit } = useSubmit();
 
-  const newChat = (e: React.MouseEvent | void) => {
-    //e && e.target.blur();
+  const newChat = () => {
     setIsMessageDeleteMode(false);
     const uuid = self.crypto.randomUUID();
     //history.pushState(null, null, `${url.origin}?c=${uuid}`);

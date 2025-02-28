@@ -24,13 +24,7 @@ interface UseWebSocketProps {
  * @param props - WebSocketフックの依存関係
  * @returns WebSocket関連の機能をまとめたオブジェクト
  */
-export const useWebSocket = ({
-  setChats,
-  saveChat,
-  scrollToBottom,
-  richChats,
-  systemInputRef,
-}: UseWebSocketProps) => {
+export const useWebSocket = ({ setChats, saveChat, scrollToBottom, richChats, systemInputRef }: UseWebSocketProps) => {
   const [websocketMap, setWebsocketMap] = useState<WebSocketMap>({});
   const setWaitingMap = useSetAtom(AppAtoms.waitingMap);
 
@@ -40,7 +34,7 @@ export const useWebSocket = ({
    */
   const onMessage = async (event: MessageEvent) => {
     if (!event.data || event.data.startsWith('{"message": "Endpoint request timed out"')) return; // httpリクエスト正常終了応答=event.dataブランク
-    
+
     const cleanupWebSocket = (dtm: string | void) => {
       // 接続のクリーンナップ
       if (event.target && event.target instanceof WebSocket) event.target.close();
@@ -162,9 +156,9 @@ export const useWebSocket = ({
   };
 
   return {
-    onMessage,
     disconnectAllWebSockets,
     createWebSocketConnection,
     websocketMap,
   };
-}; 
+};
+

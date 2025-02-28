@@ -31,9 +31,10 @@ class Model(Enum):
     gpt4turbo = "gpt-4-turbo-2024-04-09"
     gpt4o = "gpt-4o-2024-08-06"
     gpt4o_mini = "gpt-4o-mini"
-    gpt_o1_preview= "o1-preview-2024-09-12"
+    gpt4_5_preview = "gpt-4.5-preview-2025-02-27"
+    gpt_o1_preview = "o1-preview-2024-09-12"
     gpt_o1_mini = "o1-mini-2024-09-12"
-    #gpt_o3_mini= "o3-mini-2025-01-31"
+    # gpt_o3_mini= "o3-mini-2025-01-31"
     # bedrock
     claude_v3_sonnet = "anthropic.claude-3-sonnet-20240229-v1:0"
     claude_v2 = "anthropic.claude-v2"
@@ -62,9 +63,10 @@ PRICE = {
     Model.gpt4turbo.value: {"in": 0.01, "out": 0.03},
     Model.gpt4o.value: {"in": 0.0025, "out": 0.010},
     Model.gpt4o_mini.value: {"in": 0.00015, "out": 0.0006},
+    Model.gpt4_5_preview.value: {"in": 0.075, "out": 0.15},
     Model.gpt_o1_preview.value: {"in": 0.015, "out": 0.060},
     Model.gpt_o1_mini.value: {"in": 0.0011, "out": 0.0044},
-    #Model.gpt_o3_mini.value: {"in": 0.0011, "out": 0.0044},
+    # Model.gpt_o3_mini.value: {"in": 0.0011, "out": 0.0044},
     # claude #
     Model.claude_instant_v1.value: {"in": 0.00163, "out": 0.00551},
     Model.claude_v2.value: {"in": 0.008, "out": 0.024},

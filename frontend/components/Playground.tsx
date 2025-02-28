@@ -18,6 +18,8 @@ import MenuDrawer from "./MenuDrawer";
 import MobileDrawer from "./MobileDrawer";
 import useOnWindowRefocus from "lib/useOnWindowReforcus";
 import { useChat } from "../hooks/useChat";
+import { useWebSocket } from "../hooks/useWebSocket";
+import { useSubmit } from "../hooks/useSubmit";
 
 interface WebSocketMap {
   [key: string]: WebSocket;
@@ -27,7 +29,7 @@ interface Dict<T> {
   [key: string]: T;
 }
 
-function PlayGround() {
+function Playground() {
   useOnWindowRefocus(async () => {
     const session = await fetchAuthSession();
     if (!session.tokens) {
@@ -105,106 +107,7 @@ function PlayGround() {
       return chats;
     });
   };
-  const onMessage = async (event: MessageEvent) => {
-    if (!event.data || event.data.startsWith('{"message": "Endpoint request timed out"')) return; // } // httpリクエスト正常終了応答=event.dataブランク
-    const cleanupWebSocket = (dtm: string | void) => {
-      // 接続のクリーンナップ
-      if (event.target && event.target instanceof WebSocket) event.target.close();
-      setWebsocketMap((websocketMap: WebSocketMap) => {
-        if (dtm && dtm in websocketMap) {
-          delete websocketMap[dtm];
-        }
-        return websocketMap;
-      });
-    };
-
-    try {
-      const { content, dtm, chatid, userDtm, done, errorType, errorMessage } = JSON.parse(event.data);
-      if (dtm === undefined) {
-        console.error("想定外のレスポンス形式", event.data);
-      } else if (content !== undefined) {
-        // メッセージ追記
-        setChats((chats: Chats) => {
-          const messages = chats[chatid];
-          const tgtAssMsg = messages.filter((msg: Message) => msg.role === "assistant" && dtm === msg.dtm);
-          if (!tgtAssMsg.length) return chats;
-          const origContent = tgtAssMsg[0].content;
-          const updatedMsgs = messages.map((msg: Message) =>
-            !(msg.role === "assistant" && dtm === msg.dtm)
-              ? msg
-              : { role: "assistant", model: msg.model, content: origContent === null ? content : origContent + content, dtm },
-          );
-          chats[chatid] = updatedMsgs;
-          return chats;
-        });
-        scrollToBottom();
-      } else if (done !== undefined) {
-        // メッセージ終了
-        setWaitingMap((waitingMap: WebSocketMap) => ({ ...waitingMap, [dtm]: 0 }));
-        cleanupWebSocket(dtm);
-        console.info(event.data); // 利用料等情報
-        setChats((chats: Chats) => {
-          const messages = chats[chatid];
-          const updatedMsgs = messages.map((msg: Message) => (![dtm, userDtm].includes(msg.dtm) ? msg : { ...msg, done }));
-          chats[chatid] = updatedMsgs;
-          return chats;
-        });
-        await saveChat(chatid, richChats[chatid], systemInputRef.current);
-      } else {
-        interface Dict<T> {
-          [key: string]: T;
-        }
-        const errorMessages: Dict<string> = {
-          InvalidChatHistory: "不正なチャット履歴です。",
-          LackOfPoints: "ポイントが不足しています。",
-          OpenAIAPIError: errorMessage,
-          AnthropicAPIError: errorMessage,
-        };
-        // エラー系
-        setWaitingMap((waitingMap: WebSocketMap) => ({ ...waitingMap, [dtm]: 0 }));
-        cleanupWebSocket(dtm);
-        let chatErrorMessage: string;
-        if (Object.keys(errorMessages).includes(errorType)) {
-          chatErrorMessage = errorMessages[errorType];
-        } else {
-          console.error("想定外のレスポンス形式", event.data);
-          chatErrorMessage = "An error happend.";
-        }
-        setChats((chats: Chats) => {
-          const messages = chats[chatid];
-          const updatedMsgs = messages.map((msg: Message) =>
-            dtm !== msg.dtm || msg.role === "user" ? msg : { ...msg, content: chatErrorMessage, isError: true },
-          );
-          chats[chatid] = updatedMsgs;
-          return chats;
-        });
-      }
-    } catch (e) {
-      cleanupWebSocket();
-      console.error("parse response json error", e);
-      console.error("event.data = ", event.data);
-      alert("システムエラーが発生しました。");
-    }
-  };
-
-  const newChat = (e: React.MouseEvent | void) => {
-    //e && e.target.blur();
-    setIsMessageDeleteMode(false);
-    const uuid = self.crypto.randomUUID();
-    //history.pushState(null, null, `${url.origin}?c=${uuid}`);
-    if (pathname === "/") {
-      router.replace(`/?c=${uuid}`);
-    } else {
-      router.push(`/?c=${uuid}`);
-    }
-    setPagesChatId(uuid);
-    setChatsEmptyMessages(uuid);
-    if (!window.matchMedia("(min-width: 768px)").matches) {
-      setSidebarDisplay(false);
-    }
-    return uuid;
-  };
-
+  
   const fetchAppSync = async ({
     query,
     variables,
@@ -225,6 +128,70 @@ function PlayGround() {
     }
     return resJson?.data;
   };
+  
+  // useChat フックを初期化
+  const { getChatHistory, saveChat, deleteChats, displayChat } = useChat({
+    chatHistoryLastEvaluatedKey,
+    setChatHistoryLastEvaluatedKey,
+    fetchAppSync,
+    setChats,
+    chats: richChats,
+    router,
+    setChatid: setPagesChatId,
+  });
+
+  // スクロール時の処理
+  const onScroll = () => {
+    const el = container.current;
+    if (!el) return;
+    const rate = el.scrollTop / (el.scrollHeight - el.clientHeight);
+    if (rate > 0.99) {
+      getChatHistory(true);
+    }
+  };
+
+  // スクロールをページ下部に移動する関数
+  const scrollToBottom = () => {
+    if (!autoScrollRef.current) return;
+    setTimeout(() => {
+      const messagesContainer = document.querySelector("#messages-container");
+      messagesContainer?.scrollTo(0, messagesContainer.scrollHeight);
+    }, 0);
+  };
+
+  // WebSocketフックを初期化
+  const { 
+    onMessage, 
+    disconnectAllWebSockets, 
+    createWebSocketConnection 
+  } = useWebSocket({
+    setChats,
+    saveChat,
+    scrollToBottom,
+    richChats,
+    systemInputRef,
+  });
+
+  // Submitフックを初期化
+  const { submit } = useSubmit();
+
+  const newChat = (e: React.MouseEvent | void) => {
+    //e && e.target.blur();
+    setIsMessageDeleteMode(false);
+    const uuid = self.crypto.randomUUID();
+    //history.pushState(null, null, `${url.origin}?c=${uuid}`);
+    if (pathname === "/") {
+      router.replace(`/?c=${uuid}`);
+    } else {
+      router.push(`/?c=${uuid}`);
+    }
+    setPagesChatId(uuid);
+    setChatsEmptyMessages(uuid);
+    if (!window.matchMedia("(min-width: 768px)").matches) {
+      setSidebarDisplay(false);
+    }
+    return uuid;
+  };
 
   const initSettings = async () => {
     try {
@@ -244,26 +211,6 @@ function PlayGround() {
       }
     } catch (e) {
       console.error("getSettings() error", e);
-    }
-  };
-
-  // useChat フックを初期化
-  const { getChatHistory, saveChat, deleteChats, displayChat } = useChat({
-    chatHistoryLastEvaluatedKey,
-    setChatHistoryLastEvaluatedKey,
-    fetchAppSync,
-    setChats,
-    chats: richChats,
-    router,
-    setChatid: setPagesChatId,
-  });
-
-  const onScroll = () => {
-    const el = container.current;
-    if (!el) return;
-    const rate = el.scrollTop / (el.scrollHeight - el.clientHeight);
-    if (rate > 0.99) {
-      getChatHistory(true);
     }
   };
 
@@ -332,13 +279,7 @@ function PlayGround() {
       messagesContainer?.scrollTo(0, messagesContainer.scrollHeight);
     }, 0);
   }, [userInput, systemInput]);
-  const scrollToBottom = () => {
-    if (!autoScrollRef.current) return;
-    setTimeout(() => {
-      const messagesContainer = document.querySelector("#messages-container");
-      messagesContainer?.scrollTo(0, messagesContainer.scrollHeight);
-    }, 0);
-  };
+
   const handleUserSubmit = async () => {
     if (!userInput) return;
     setUserInput(""); // 2重処理抑止のために最初に
@@ -360,69 +301,55 @@ function PlayGround() {
       chats[pagesChatIdRef.current] = [...messages, { role: "user", content: userInput, dtm: userDtm }];
       return chats;
     });
-    // サブミット
-    const submit = async (model: string, userDtm: string) => {
-      try {
-        const dtm = new Date().toISOString();
-        setChats((chats: Chats) => {
-          const messages = chats[pagesChatIdRef.current];
-          chats[pagesChatIdRef.current] = [...messages, { role: "assistant", model: model, content: null, dtm }];
-          return chats;
-        });
-        scrollToBottom();
-
-        // メッセージ送信
-        const session = await fetchAuthSession();
-        if (!session.tokens) {
-          alert("セッションが終了しました。ログインしてください。");
-          signOut();
-          return;
-        }
-        const jwt = session.tokens.accessToken.toString();
-        const prm = JSON.stringify({
-          sysMsg: systemInput,
-          userMsg: userInput,
-          temperatureGpt: temperatureGpt,
-          topPGpt: topPGpt,
-          frequencyPenaltyGpt: frequencyPenaltyGpt,
-          presencePenaltyGpt: presencePenaltyGpt,
-          temperatureClaude: temperatureClaude,
-          temperatureCohere: temperatureCohere,
-          // topPClaude: topPClaude,
-          // topKClaude: topKClaude,
-          messages: richChats[pagesChatIdRef.current].map((msg: Message) => ({
-            role: msg.role,
-            dtm: msg.dtm,
-            model: msg.model,
-            content: msg.content,
-            done: msg.done,
-          })),
-          model: model,
-          chatid: pagesChatIdRef.current,
-          dtm,
-          userDtm,
-          jwt,
-        });
-        const websocket = new WebSocket(apiUrls.wss);
-        setWebsocketMap((map: WebSocketMap) => {
-          map[dtm] = websocket;
-          return map;
-        });
-        websocket.onmessage = onMessage;
-        websocket.onopen = () => websocket.send(prm);
-      } catch (error: unknown) {
-        // Consider implementing your own error handling logic here
-        console.error("submit error", error);
-        if (error instanceof Error) alert(error.message);
-      }
+    
+    // 温度や罰則の設定をまとめる
+    const temperature = {
+      gpt: temperatureGpt,
+      claude: temperatureClaude,
+      cohere: temperatureCohere,
     };
+    
+    const penalties = {
+      topP: topPGpt,
+      frequencyPenalty: frequencyPenaltyGpt,
+      presencePenalty: presencePenaltyGpt,
+    };
+
+    // 非並列処理の場合
     if (!isParallel) {
-      submit(selectedModel, userDtm);
+      submit({
+        model: selectedModel,
+        userDtm,
+        userInput,
+        systemInput,
+        pagesChatIdRef,
+        richChats,
+        setChats,
+        scrollToBottom,
+        createWebSocketConnection,
+        temperature,
+        penalties,
+      });
     } else {
+      // 並列処理の場合
       for (const [i, model] of Object.entries(Object.keys(submissionStatus))) {
-        //console.info(model, submissionStatus[model]);
         if (submissionStatus[model]) {
-          setTimeout(() => submit(model, userDtm), parseInt(i) * 100);
+          setTimeout(() => 
+            submit({
+              model,
+              userDtm,
+              userInput,
+              systemInput,
+              pagesChatIdRef,
+              richChats,
+              setChats,
+              scrollToBottom,
+              createWebSocketConnection,
+              temperature,
+              penalties,
+            }),
+            parseInt(i) * 100
+          );
         }
       }
     }
@@ -660,27 +587,7 @@ function PlayGround() {
             {isResponding ? (
               <MaterialButton
                 name="block"
-                onClick={async () => {
-                  // 全websocket接続を切断
-                  setWebsocketMap((websocketMap: WebSocketMap) => {
-                    Object.keys(websocketMap).map((dtm) => {
-                      websocketMap[dtm].close();
-                      delete websocketMap[dtm];
-                    });
-                    return {};
-                  });
-                  // 応答中状態を破棄
-                  setWaitingMap({});
-                  // 中断メッセージの表示(少しでも応答メッセージがあれば上書きはしない)
-                  setChats((chats: Chats) => {
-                    const messages = chats[pagesChatIdRef.current];
-                    const updatedMsgs = messages.map((msg) =>
-                      msg.role === "user" || msg.content ? msg : { ...msg, content: "応答の受信が中断されました。", isError: true },
-                    );
-                    chats[pagesChatIdRef.current] = updatedMsgs;
-                    return chats;
-                  });
-                }}
+                onClick={async () => disconnectAllWebSockets(pagesChatIdRef)}
               />
             ) : null}
             {!isMessageDeleteMode ? (
@@ -746,4 +653,4 @@ function PlayGround() {
   );
 }
 
-export default withAuthenticator(PlayGround);
+export default withAuthenticator(Playground);

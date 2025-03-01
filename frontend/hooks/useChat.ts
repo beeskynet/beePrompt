@@ -1,18 +1,17 @@
 import { useAtom } from "jotai";
-import { AppAtoms, Message } from "lib/store";
+import { AppAtoms, Message, Chats } from "lib/store";
+import { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { fetchAuthSession } from "aws-amplify/auth";
+import { apiUrls } from "lib/environments";
 
 interface Dict<T> {
   [key: string]: T;
 }
 
 interface UseChatProps {
-  chatHistoryLastEvaluatedKey: string;
-  setChatHistoryLastEvaluatedKey: (key: string) => void;
-  fetchAppSync: (params: { query: string; variables?: Dict<any> }) => Promise<any>;
-  setChats: (callback: (chats: Dict<Message[]>) => Dict<Message[]>) => void;
-  chats: Dict<Message[]>;
-  router: any;
   setChatid: (chatid: string) => void;
+  onSidebarDisplayChange?: (display: boolean) => void; // サイドバー表示制御用のコールバック
 }
 
 /**
@@ -20,18 +19,102 @@ interface UseChatProps {
  * @param props - フックの依存関係
  * @returns チャット関連の機能をまとめたオブジェクト
  */
-export const useChat = ({
-  chatHistoryLastEvaluatedKey,
-  setChatHistoryLastEvaluatedKey,
-  fetchAppSync,
-  setChats,
-  chats,
-  router,
-  setChatid,
-}: UseChatProps) => {
+export const useChat = ({ setChatid, onSidebarDisplayChange }: UseChatProps) => {
+  // useState で内部状態を管理
+  const [chatHistoryLastEvaluatedKey, setChatHistoryLastEvaluatedKey] = useState<string>("");
+
+  // 必要な状態を直接フック内で取得
   const [isChatsDeleteMode, _setIsChatsDeleteMode] = useAtom(AppAtoms.isChatsDeleteMode);
   const [_chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
   const [_, setFrontChat] = useAtom(AppAtoms.frontChat);
+  const [richChats, setRichChats] = useAtom(AppAtoms.richChats);
+  const [pagesChatId, _setPagesChatId] = useAtom(AppAtoms.chatid);
+  const [_isMessageDeleteMode, setIsMessageDeleteMode] = useAtom(AppAtoms.isMessageDeleteMode);
+
+  // router を直接フック内で取得
+  const router = useRouter();
+  const pathname = usePathname();
+
+  /**
+   * 新しいチャットを作成する
+   * @returns 作成したチャットのID
+   */
+  const newChat = () => {
+    setIsMessageDeleteMode(false);
+    const uuid = self.crypto.randomUUID();
+
+    // 新しいチャットIDでリッチチャットを空に初期化
+    const newRichChats = { ...richChats };
+    newRichChats[uuid] = [];
+    setRichChats(newRichChats);
+
+    // フロントチャットを明示的に空にする
+    setFrontChat([]);
+
+    // チャットIDを設定
+    setChatid(uuid);
+
+    // URLを更新
+    if (pathname === "/") {
+      router.replace(`/?c=${uuid}`);
+    } else {
+      router.push(`/?c=${uuid}`);
+    }
+
+    // モバイル画面の場合、サイドバーを非表示にする
+    if (!window.matchMedia("(min-width: 768px)").matches && onSidebarDisplayChange) {
+      onSidebarDisplayChange(false);
+    }
+
+    return uuid;
+  };
+
+  /**
+   * チャットの状態を更新する関数
+   * @param func 現在のチャット状態を受け取り、新しいチャット状態を返す関数
+   */
+  const updateChats = (func: Function) => {
+    const newRichChats = func(richChats);
+    setRichChats(newRichChats);
+    setFrontChat(JSON.parse(JSON.stringify(newRichChats[pagesChatId] || [])));
+  };
+
+  /**
+   * 指定されたチャットIDのメッセージを空にする
+   * @param chatid チャットID
+   */
+  const setChatsEmptyMessages = (chatid: string) => {
+    updateChats((chats: Chats) => {
+      chats[chatid] = [];
+      return chats;
+    });
+  };
+
+  /**
+   * AppSync APIを呼び出す関数
+   * @param param0 クエリと変数
+   * @returns APIレスポンス
+   */
+  const fetchAppSync = async ({
+    query,
+    variables,
+  }: {
+    query: string;
+    variables?: Dict<string | number | boolean | Message[] | string[] | null | undefined>;
+  }) => {
+    const session = await fetchAuthSession();
+    const res = await fetch(apiUrls.appSync, {
+      method: "POST",
+      headers: session.tokens?.accessToken ? { Authorization: session.tokens.accessToken.toString() } : undefined,
+      body: JSON.stringify({ query, variables }),
+    });
+    const resJson = await res.json();
+    if (resJson.errors) {
+      console.error(resJson.errors[0].message, resJson.errors);
+      throw "AppSync error.";
+    }
+    return resJson?.data;
+  };
 
   /**
    * チャット履歴を取得する
@@ -113,7 +196,7 @@ export const useChat = ({
    */
   const displayChat = async (chatid: string, updateHistory = true) => {
     try {
-      if (!chats[chatid]) {
+      if (!richChats[chatid]) {
         const query = `
         query($chatid:String!) {
           getChatDetail(chatid: $chatid) {
@@ -126,15 +209,15 @@ export const useChat = ({
         const data = await fetchAppSync({ query, variables });
         const chatData = data?.getChatDetail?.chat ? data.getChatDetail.chat : [];
 
-        setChats((chats) => {
+        updateChats((chats: Chats) => {
           chats[chatid] = chatData;
           return chats;
         });
 
-        // frontChatも更新
-        setFrontChat(JSON.parse(JSON.stringify(chatData)));
+        // frontChatも更新は updateChats 内で行われる
       } else {
-        setFrontChat(JSON.parse(JSON.stringify(chats[chatid])));
+        // 既存のチャットの場合も、updateChatsを使用して一貫性を保つ
+        updateChats((chats: Chats) => chats);
       }
 
       setChatid(chatid);
@@ -149,5 +232,9 @@ export const useChat = ({
     saveChat,
     deleteChats,
     displayChat,
+    updateChats,
+    setChatsEmptyMessages,
+    fetchAppSync,
+    newChat,
   };
 };

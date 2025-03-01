@@ -4,10 +4,8 @@ import UserAssistant from "./UserAssistant";
 import DropdownSelect from "./DropdownSelect";
 import { Button } from "@material-tailwind/react";
 import { fetchAuthSession, signOut } from "aws-amplify/auth";
-import { useRouter, usePathname } from "next/navigation";
 import { withAuthenticator } from "@aws-amplify/ui-react";
 import { AppAtoms, Message, Chats } from "lib/store";
-import { apiUrls } from "lib/environments";
 import { useAtom, useSetAtom, useAtomValue } from "jotai";
 import MaterialButton from "./MaterialButton";
 import SettingsDrawer from "./SettingsDrawer";
@@ -36,13 +34,7 @@ function Playground() {
   });
   const [userInput, setUserInput] = useState("");
   const [frontChat, setFrontChat] = useAtom(AppAtoms.frontChat); // 画面表示用チャット内容
-  const [richChats, setRichChats] = useAtom(AppAtoms.richChats); // 並列メッセージ受信によるメッセージ欠落を防ぐため、内部的にチャット内容を保持
-
-  const setChats = (func: Function) => {
-    const newRichChats = func(richChats);
-    setRichChats(newRichChats);
-    setFrontChat(JSON.parse(JSON.stringify(newRichChats[pagesChatIdRef.current] || [])));
-  };
+  const [richChats, _setRichChats] = useAtom(AppAtoms.richChats); // 並列メッセージ受信によるメッセージ欠落を防ぐため、内部的にチャット内容を保持
 
   const [messagesOnDeleteMode, setMessagesOnDeleteMode] = useAtom(AppAtoms.messagesOnDeleteMode);
   const [systemInput, setSystemInput] = useState("");
@@ -68,10 +60,7 @@ function Playground() {
   const submissionStatus = useAtomValue(AppAtoms.submissionStatus);
   const isResponding = useAtomValue(AppAtoms.isResponding);
   const [isMessageDeleteMode, setIsMessageDeleteMode] = useAtom(AppAtoms.isMessageDeleteMode);
-  const [chatHistoryLastEvaluatedKey, setChatHistoryLastEvaluatedKey] = useState("");
   const setOpenDrawer = useSetAtom(AppAtoms.drawerOpen);
-  const router = useRouter();
-  const pathname = usePathname();
   const [settings, setSettings] = useAtom(AppAtoms.settings);
 
   const userTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -90,43 +79,11 @@ function Playground() {
   const container = useRef<HTMLDivElement | null>(null);
 
   systemInputRef.current = systemInput;
-  const setChatsEmptyMessages = (chatid: string) => {
-    setChats((chats: Chats) => {
-      chats[chatid] = [];
-      return chats;
-    });
-  };
-
-  const fetchAppSync = async ({
-    query,
-    variables,
-  }: {
-    query: string;
-    variables?: Dict<string | number | boolean | Message[] | string[] | null | undefined>;
-  }) => {
-    const session = await fetchAuthSession();
-    const res = await fetch(apiUrls.appSync, {
-      method: "POST",
-      headers: session.tokens?.accessToken ? { Authorization: session.tokens.accessToken.toString() } : undefined,
-      body: JSON.stringify({ query, variables }),
-    });
-    const resJson = await res.json();
-    if (resJson.errors) {
-      console.error(resJson.errors[0].message, resJson.errors);
-      throw "AppSync error.";
-    }
-    return resJson?.data;
-  };
 
   // useChat フックを初期化
-  const { getChatHistory, saveChat, deleteChats, displayChat } = useChat({
-    chatHistoryLastEvaluatedKey,
-    setChatHistoryLastEvaluatedKey,
-    fetchAppSync,
-    setChats,
-    chats: richChats,
-    router,
+  const { getChatHistory, saveChat, deleteChats, displayChat, updateChats, setChatsEmptyMessages, fetchAppSync, newChat } = useChat({
     setChatid: setPagesChatId,
+    onSidebarDisplayChange: setSidebarDisplay,
   });
 
   // スクロール時の処理
@@ -150,7 +107,7 @@ function Playground() {
 
   // WebSocketフックを初期化
   const { disconnectAllWebSockets, createWebSocketConnection } = useWebSocket({
-    setChats,
+    setChats: updateChats,
     saveChat,
     scrollToBottom,
     richChats,
@@ -159,23 +116,6 @@ function Playground() {
 
   // Submitフックを初期化
   const { submit } = useSubmit();
-
-  const newChat = () => {
-    setIsMessageDeleteMode(false);
-    const uuid = self.crypto.randomUUID();
-    //history.pushState(null, null, `${url.origin}?c=${uuid}`);
-    if (pathname === "/") {
-      router.replace(`/?c=${uuid}`);
-    } else {
-      router.push(`/?c=${uuid}`);
-    }
-    setPagesChatId(uuid);
-    setChatsEmptyMessages(uuid);
-    if (!window.matchMedia("(min-width: 768px)").matches) {
-      setSidebarDisplay(false);
-    }
-    return uuid;
-  };
 
   const initSettings = async () => {
     try {
@@ -280,7 +220,7 @@ function Playground() {
     });
     // ユーザーメッセージ追加
     const userDtm = new Date().toISOString();
-    setChats((chats: Chats) => {
+    updateChats((chats: Chats) => {
       const messages = chats[pagesChatIdRef.current];
       chats[pagesChatIdRef.current] = [...messages, { role: "user", content: userInput, dtm: userDtm }];
       return chats;
@@ -308,7 +248,7 @@ function Playground() {
         systemInput,
         pagesChatIdRef,
         richChats,
-        setChats,
+        setChats: updateChats,
         scrollToBottom,
         createWebSocketConnection,
         temperature,
@@ -327,7 +267,7 @@ function Playground() {
                 systemInput,
                 pagesChatIdRef,
                 richChats,
-                setChats,
+                setChats: updateChats,
                 scrollToBottom,
                 createWebSocketConnection,
                 temperature,
@@ -499,7 +439,7 @@ function Playground() {
                 <MaterialButton
                   name="done"
                   onClick={async () => {
-                    setChats((chats: Chats) => {
+                    updateChats((chats: Chats) => {
                       chats[pagesChatIdRef.current] = messagesOnDeleteMode;
                       return chats;
                     });

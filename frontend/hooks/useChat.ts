@@ -1,6 +1,6 @@
 import { useAtom } from "jotai";
 import { AppAtoms, Message, Chats } from "lib/store";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { apiUrls } from "lib/environments";
@@ -9,31 +9,42 @@ interface Dict<T> {
   [key: string]: T;
 }
 
-interface UseChatProps {
-  setChatid: (chatid: string) => void;
-  onSidebarDisplayChange?: (display: boolean) => void; // サイドバー表示制御用のコールバック
-}
-
 /**
  * チャット関連の機能を提供するカスタムフック
- * @param props - フックの依存関係
  * @returns チャット関連の機能をまとめたオブジェクト
  */
-export const useChat = ({ setChatid, onSidebarDisplayChange }: UseChatProps) => {
+export const useChat = () => {
   // useState で内部状態を管理
   const [chatHistoryLastEvaluatedKey, setChatHistoryLastEvaluatedKey] = useState<string>("");
-
+  
   // 必要な状態を直接フック内で取得
   const [isChatsDeleteMode, _setIsChatsDeleteMode] = useAtom(AppAtoms.isChatsDeleteMode);
   const [_chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
-  const [_, setFrontChat] = useAtom(AppAtoms.frontChat);
+  const [_frontChat, setFrontChat] = useAtom(AppAtoms.frontChat);
   const [richChats, setRichChats] = useAtom(AppAtoms.richChats);
-  const [pagesChatId, _setPagesChatId] = useAtom(AppAtoms.chatid);
+  const [pagesChatId, setPagesChatIdState] = useAtom(AppAtoms.chatid);
   const [_isMessageDeleteMode, setIsMessageDeleteMode] = useAtom(AppAtoms.isMessageDeleteMode);
-
+  const [sidebarDisplayChange, _setSidebarDisplayChange] = useAtom(AppAtoms.sidebarDisplayChange);
+  
+  // 現在表示中のチャットIDを管理するref
+  const pagesChatIdRef = useRef<string>("");
+  
   // router を直接フック内で取得
   const router = useRouter();
   const pathname = usePathname();
+
+  /**
+   * チャットIDを設定する関数
+   * @param newChatid 新しいチャットID
+   */
+  const setPagesChatId = (newChatid: string) => {
+    pagesChatIdRef.current = newChatid;
+    setPagesChatIdState(newChatid);
+    // チャットIDが変更されたらfrontChatも更新
+    if (richChats[newChatid]) {
+      setFrontChat(JSON.parse(JSON.stringify(richChats[newChatid])));
+    }
+  };
 
   /**
    * 新しいチャットを作成する
@@ -44,28 +55,28 @@ export const useChat = ({ setChatid, onSidebarDisplayChange }: UseChatProps) => 
     const uuid = self.crypto.randomUUID();
 
     // 新しいチャットIDでリッチチャットを空に初期化
-    const newRichChats = { ...richChats };
+    const newRichChats = {...richChats};
     newRichChats[uuid] = [];
     setRichChats(newRichChats);
-
+    
     // フロントチャットを明示的に空にする
     setFrontChat([]);
-
+    
     // チャットIDを設定
-    setChatid(uuid);
-
+    setPagesChatId(uuid);
+    
     // URLを更新
     if (pathname === "/") {
       router.replace(`/?c=${uuid}`);
     } else {
       router.push(`/?c=${uuid}`);
     }
-
+    
     // モバイル画面の場合、サイドバーを非表示にする
-    if (!window.matchMedia("(min-width: 768px)").matches && onSidebarDisplayChange) {
-      onSidebarDisplayChange(false);
+    if (!window.matchMedia("(min-width: 768px)").matches && sidebarDisplayChange) {
+      sidebarDisplayChange(false);
     }
-
+    
     return uuid;
   };
 
@@ -220,7 +231,7 @@ export const useChat = ({ setChatid, onSidebarDisplayChange }: UseChatProps) => 
         updateChats((chats: Chats) => chats);
       }
 
-      setChatid(chatid);
+      setPagesChatId(chatid);
       if (updateHistory) router.push(`/?c=${chatid}`);
     } catch (e) {
       console.error("displayChat() error", e);
@@ -236,5 +247,7 @@ export const useChat = ({ setChatid, onSidebarDisplayChange }: UseChatProps) => 
     setChatsEmptyMessages,
     fetchAppSync,
     newChat,
+    setPagesChatId,
+    pagesChatIdRef
   };
 };

@@ -20,10 +20,6 @@ import { useChat } from "../hooks/useChat";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useSubmit } from "../hooks/useSubmit";
 
-interface Dict<T> {
-  [key: string]: T;
-}
-
 function Playground() {
   useOnWindowRefocus(async () => {
     const session = await fetchAuthSession();
@@ -33,7 +29,7 @@ function Playground() {
     }
   });
   const [userInput, setUserInput] = useState("");
-  const [frontChat, setFrontChat] = useAtom(AppAtoms.frontChat); // 画面表示用チャット内容
+  const [frontChat, _setFrontChat] = useAtom(AppAtoms.frontChat); // 画面表示用チャット内容
   const [richChats, _setRichChats] = useAtom(AppAtoms.richChats); // 並列メッセージ受信によるメッセージ欠落を防ぐため、内部的にチャット内容を保持
 
   const [messagesOnDeleteMode, setMessagesOnDeleteMode] = useAtom(AppAtoms.messagesOnDeleteMode);
@@ -41,17 +37,22 @@ function Playground() {
   const [autoScroll, setAutoScroll] = useState(true);
   const [sidebarContent, setSidebarContent] = useState("history");
   const [sidebarDisplay, setSidebarDisplay] = useState(true);
-  // 現在表示中のチャットIDを管理するref
-  const pagesChatIdRef = useRef<string>("");
-  const [_pagesChatIdState, setPagesChatIdState] = useAtom(AppAtoms.chatid);
-  const setPagesChatId = (newChatid: string) => {
-    pagesChatIdRef.current = newChatid;
-    setPagesChatIdState(newChatid);
-    // チャットIDが変更されたらfrontChatも更新
-    if (richChats[newChatid]) {
-      setFrontChat(JSON.parse(JSON.stringify(richChats[newChatid])));
-    }
-  };
+  // サイドバー表示状態変更コールバックをatomにセット
+  const [_, setSidebarDisplayChange] = useAtom(AppAtoms.sidebarDisplayChange);
+
+  // useChat フックを初期化
+  const {
+    getChatHistory,
+    saveChat,
+    deleteChats,
+    displayChat,
+    updateChats,
+    setChatsEmptyMessages,
+    fetchAppSync,
+    newChat,
+    setPagesChatId,
+    pagesChatIdRef,
+  } = useChat();
 
   const [chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -80,11 +81,10 @@ function Playground() {
 
   systemInputRef.current = systemInput;
 
-  // useChat フックを初期化
-  const { getChatHistory, saveChat, deleteChats, displayChat, updateChats, setChatsEmptyMessages, fetchAppSync, newChat } = useChat({
-    setChatid: setPagesChatId,
-    onSidebarDisplayChange: setSidebarDisplay,
-  });
+  // コンポーネントマウント時にsidebarDisplayChangeを設定
+  useEffect(() => {
+    setSidebarDisplayChange(() => setSidebarDisplay);
+  }, [setSidebarDisplayChange]);
 
   // スクロール時の処理
   const onScroll = () => {

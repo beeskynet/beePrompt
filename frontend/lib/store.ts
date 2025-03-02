@@ -98,6 +98,9 @@ const settings = atom({
   },
 });
 
+// サイドバー表示状態を変更するための関数を保持するatom
+const sidebarDisplayChange = atom<((display: boolean) => void) | null>(null);
+
 export const AppAtoms = {
   submissionStatus,
   selectedModel,
@@ -114,4 +117,5 @@ export const AppAtoms = {
   chatHistory,
   chatid,
   systemInput,
+  sidebarDisplayChange,
 };

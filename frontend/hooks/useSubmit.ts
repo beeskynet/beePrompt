@@ -7,7 +7,7 @@ interface SubmitParams {
   userDtm: string;
   userInput: string;
   systemInput: string;
-  pagesChatIdRef: React.MutableRefObject<string>;
+  activeChatId: string;
   richChats: Chats;
   setChats: (callback: (chats: Chats) => Chats) => void;
   scrollToBottom: () => void;
@@ -38,7 +38,7 @@ export const useSubmit = () => {
     userDtm,
     userInput,
     systemInput,
-    pagesChatIdRef,
+    activeChatId,
     richChats,
     setChats,
     scrollToBottom,
@@ -49,8 +49,8 @@ export const useSubmit = () => {
     try {
       const dtm = new Date().toISOString();
       setChats((chats: Chats) => {
-        const messages = chats[pagesChatIdRef.current];
-        chats[pagesChatIdRef.current] = [...messages, { role: "assistant", model: model, content: null, dtm }];
+        const messages = chats[activeChatId];
+        chats[activeChatId] = [...messages, { role: "assistant", model: model, content: null, dtm }];
         return chats;
       });
       scrollToBottom();
@@ -72,7 +72,7 @@ export const useSubmit = () => {
         presencePenaltyGpt: penalties.presencePenalty,
         temperatureClaude: temperature.claude,
         temperatureCohere: temperature.cohere,
-        messages: richChats[pagesChatIdRef.current].map((msg: Message) => ({
+        messages: richChats[activeChatId].map((msg: Message) => ({
           role: msg.role,
           dtm: msg.dtm,
           model: msg.model,
@@ -80,7 +80,7 @@ export const useSubmit = () => {
           done: msg.done,
         })),
         model: model,
-        chatid: pagesChatIdRef.current,
+        chatid: activeChatId,
         dtm,
         userDtm,
         jwt,

@@ -18,7 +18,7 @@ interface ChatHistoryProps {
  */
 const ChatHistory: React.FC<ChatHistoryProps> = ({ container, sidebarDisplay, sidebarContent, systemInput }) => {
   // useChatフックから関数を取得
-  const { pagesChatIdRef, getChatHistory, setChatsEmptyMessages, saveChat, displayChat, deleteChats } = useChat();
+  const { activeChatId, getChatHistory, saveChat, displayChat, deleteChats } = useChat();
 
   // Jotaiアトムから直接ステートを取得
   const [isChatsDeleteMode, setIsChatsDeleteMode] = useAtom(AppAtoms.isChatsDeleteMode);
@@ -108,9 +108,6 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ container, sidebarDisplay, si
     await getChatHistory();
     setIsChatsDeleteMode(false); // 履歴を消した後に表示切り替え
     setChatsOnDeleteMode([]);
-    if (chatidsForDelete.includes(pagesChatIdRef.current)) {
-      setChatsEmptyMessages(pagesChatIdRef.current);
-    }
   };
 
   // 削除をキャンセルする
@@ -146,7 +143,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ container, sidebarDisplay, si
             {isChatsDeleteMode ? (
               <MaterialButton name="delete" className="absolute top-0 right-0 " onClick={() => handleAddToDeleteList(chat)} blur />
             ) : null}
-            {!isChatsDeleteMode && pagesChatIdRef.current === chat.chatid ? (
+            {!isChatsDeleteMode && activeChatId === chat.chatid ? (
               <MaterialButton
                 name="edit"
                 className="absolute top-0 right-0 invisible"
@@ -160,9 +157,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ container, sidebarDisplay, si
             {chatidOnEditTitle !== chat.chatid ? (
               <div
                 key={index}
-                className={`pl-3 p-1 cursor-pointer whitespace-nowrap ${
-                  chat.chatid === pagesChatIdRef.current ? "bg-gray-200" : "hover:bg-gray-100"
-                }`}
+                className={`pl-3 p-1 cursor-pointer whitespace-nowrap ${chat.chatid === activeChatId ? "bg-gray-200" : "hover:bg-gray-100"}`}
                 onClick={clickChatHistoryLine(chat.chatid + "")}
               >
                 <span className="text-sm">{chat.title}</span>
@@ -178,4 +173,3 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ container, sidebarDisplay, si
 };
 
 export default ChatHistory;
-

@@ -27,16 +27,6 @@ export const useChat = () => {
   const [sidebarDisplayChange, _setSidebarDisplayChange] = useAtom(AppAtoms.sidebarDisplayChange);
   const [activeChatId, setActiveChatId] = useAtom(AppAtoms.activeChatIdRef);
 
-  // 参照オブジェクトを維持してAPI互換性を保持
-  const pagesChatIdRef = {
-    get current() {
-      return activeChatId;
-    },
-    set current(value: string) {
-      setActiveChatId(value);
-    },
-  };
-
   // router を直接フック内で取得
   const router = useRouter();
   const pathname = usePathname();
@@ -74,7 +64,7 @@ export const useChat = () => {
     // チャットIDを設定
     setPagesChatId(uuid);
     console.log("newChat", uuid);
-    console.log("pagesChatIdRef.current", pagesChatIdRef.current);
+    console.log("activeChatId", activeChatId);
 
     // URLを更新
     if (pathname === "/") {
@@ -207,8 +197,8 @@ export const useChat = () => {
       const variables = { chatids };
       await fetchAppSync({ query, variables });
 
-      // 現在表示中のチャットが削除対象に含まれている場合、フロントエンド側のデータもクリア
-      if (chatids.includes(pagesChatIdRef.current)) {
+      // 現在表示中のチャットが削除対象に含まれている場合、新しいチャットを作成
+      if (chatids.includes(activeChatId)) {
         newChat();
       }
 
@@ -265,6 +255,6 @@ export const useChat = () => {
     fetchAppSync,
     newChat,
     setPagesChatId,
-    pagesChatIdRef,
+    activeChatId,
   };
 };

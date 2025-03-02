@@ -114,9 +114,9 @@ export const useWebSocket = ({ setChats, saveChat, scrollToBottom, richChats, sy
 
   /**
    * すべてのWebSocket接続を切断する
-   * @param pagesChatIdRef - 現在のチャットID
+   * @param activeChatId - 現在のチャットID
    */
-  const disconnectAllWebSockets = (pagesChatIdRef: React.MutableRefObject<string>) => {
+  const disconnectAllWebSockets = (activeChatId: string) => {
     // 全websocket接続を切断
     setWebsocketMap((websocketMap: WebSocketMap) => {
       Object.keys(websocketMap).forEach((dtm) => {
@@ -129,11 +129,11 @@ export const useWebSocket = ({ setChats, saveChat, scrollToBottom, richChats, sy
     setWaitingMap({});
     // 中断メッセージの表示(少しでも応答メッセージがあれば上書きはしない)
     setChats((chats: Chats) => {
-      const messages = chats[pagesChatIdRef.current];
+      const messages = chats[activeChatId];
       const updatedMsgs = messages.map((msg) =>
         msg.role === "user" || msg.content ? msg : { ...msg, content: "応答の受信が中断されました。", isError: true },
       );
-      chats[pagesChatIdRef.current] = updatedMsgs;
+      chats[activeChatId] = updatedMsgs;
       return chats;
     });
   };

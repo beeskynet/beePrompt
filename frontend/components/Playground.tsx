@@ -41,7 +41,7 @@ function Playground() {
   const [_, setSidebarDisplayChange] = useAtom(AppAtoms.sidebarDisplayChange);
 
   // useChat フックを初期化
-  const { getChatHistory, saveChat, displayChat, updateChats, fetchAppSync, newChat, setPagesChatId, pagesChatIdRef } = useChat();
+  const { getChatHistory, saveChat, displayChat, updateChats, fetchAppSync, newChat, setPagesChatId, activeChatId } = useChat();
 
   const [chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -135,8 +135,6 @@ function Playground() {
         newChat();
       } else {
         setPagesChatId(gotChatId);
-        // pagesChatIdRefも明示的に初期化
-        pagesChatIdRef.current = gotChatId;
         displayChat(gotChatId);
       }
 
@@ -192,16 +190,16 @@ function Playground() {
     }
     // チャット履歴欄に追加
     setChatHistory((chatHistory: Message[]) => {
-      if (chatHistory.filter((chat: Message) => chat.chatid === pagesChatIdRef.current).length > 0) {
+      if (chatHistory.filter((chat: Message) => chat.chatid === activeChatId).length > 0) {
         return chatHistory;
       }
-      return [{ chatid: pagesChatIdRef.current, title: "...waiting AI response..." }, ...chatHistory];
+      return [{ chatid: activeChatId, title: "...waiting AI response..." }, ...chatHistory];
     });
     // ユーザーメッセージ追加
     const userDtm = new Date().toISOString();
     updateChats((chats: Chats) => {
-      const messages = chats[pagesChatIdRef.current];
-      chats[pagesChatIdRef.current] = [...messages, { role: "user", content: userInput, dtm: userDtm }];
+      const messages = chats[activeChatId];
+      chats[activeChatId] = [...messages, { role: "user", content: userInput, dtm: userDtm }];
       return chats;
     });
 
@@ -225,7 +223,7 @@ function Playground() {
         userDtm,
         userInput,
         systemInput,
-        pagesChatIdRef,
+        activeChatId,
         richChats,
         setChats: updateChats,
         scrollToBottom,
@@ -244,7 +242,7 @@ function Playground() {
                 userDtm,
                 userInput,
                 systemInput,
-                pagesChatIdRef,
+                activeChatId,
                 richChats,
                 setChats: updateChats,
                 scrollToBottom,
@@ -359,21 +357,21 @@ function Playground() {
             </div>
           </div>
           <div id="tool-bar" className="flex flex-col align-start w-10 flex-shrink-0">
-            {isResponding ? <MaterialButton name="block" onClick={async () => disconnectAllWebSockets(pagesChatIdRef)} /> : null}
+            {isResponding ? <MaterialButton name="block" onClick={async () => disconnectAllWebSockets(activeChatId)} /> : null}
             {!isMessageDeleteMode ? (
               <>
                 <MaterialButton
                   name="delete"
                   disabled={isResponding}
                   onClick={async () => {
-                    if (richChats[pagesChatIdRef.current].length === 0) return;
+                    if (richChats[activeChatId].length === 0) return;
                     if (settings.appSettings.copyChatOnMessageDeleteMode) {
                       // チャットメッージを削除モードに入る際にメッセージをコピーする
-                      const newTitle = "copy_" + chatHistory.filter((chat: Message) => chat.chatid === pagesChatIdRef.current)[0].title;
+                      const newTitle = "copy_" + chatHistory.filter((chat: Message) => chat.chatid === activeChatId)[0].title;
                       const uuid = self.crypto.randomUUID();
-                      await saveChat(uuid, richChats[pagesChatIdRef.current], systemInput, newTitle);
+                      await saveChat(uuid, richChats[activeChatId], systemInput, newTitle);
                     }
-                    setMessagesOnDeleteMode(JSON.parse(JSON.stringify(richChats[pagesChatIdRef.current])));
+                    setMessagesOnDeleteMode(JSON.parse(JSON.stringify(richChats[activeChatId])));
                     setIsMessageDeleteMode(true);
                   }}
                 />
@@ -400,11 +398,11 @@ function Playground() {
                   name="done"
                   onClick={async () => {
                     updateChats((chats: Chats) => {
-                      chats[pagesChatIdRef.current] = messagesOnDeleteMode;
+                      chats[activeChatId] = messagesOnDeleteMode;
                       return chats;
                     });
                     setIsMessageDeleteMode(false);
-                    await saveChat(pagesChatIdRef.current, messagesOnDeleteMode, systemInput);
+                    await saveChat(activeChatId, messagesOnDeleteMode, systemInput);
                   }}
                 />
                 <MaterialButton

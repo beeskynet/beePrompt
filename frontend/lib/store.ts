@@ -86,6 +86,7 @@ const chatHistory = atom<Message[]>([]);
 const chatid = atom("");
 const systemInput = atom("");
 const drawerOpen = atom<string | boolean | null>(null);
+const activeChatIdRef = atom("");
 const settings = atom({
   modelSettings: {},
   appSettings: {
@@ -118,4 +119,5 @@ export const AppAtoms = {
   chatid,
   systemInput,
   sidebarDisplayChange,
+  activeChatIdRef,
 };

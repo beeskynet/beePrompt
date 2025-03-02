@@ -16,7 +16,7 @@ interface Dict<T> {
 export const useChat = () => {
   // useState で内部状態を管理
   const [chatHistoryLastEvaluatedKey, setChatHistoryLastEvaluatedKey] = useState<string>("");
-  
+
   // 必要な状態を直接フック内で取得
   const [isChatsDeleteMode, _setIsChatsDeleteMode] = useAtom(AppAtoms.isChatsDeleteMode);
   const [_chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
@@ -25,10 +25,18 @@ export const useChat = () => {
   const [pagesChatId, setPagesChatIdState] = useAtom(AppAtoms.chatid);
   const [_isMessageDeleteMode, setIsMessageDeleteMode] = useAtom(AppAtoms.isMessageDeleteMode);
   const [sidebarDisplayChange, _setSidebarDisplayChange] = useAtom(AppAtoms.sidebarDisplayChange);
-  
-  // 現在表示中のチャットIDを管理するref
-  const pagesChatIdRef = useRef<string>("");
-  
+  const [activeChatId, setActiveChatId] = useAtom(AppAtoms.activeChatIdRef);
+
+  // 参照オブジェクトを維持してAPI互換性を保持
+  const pagesChatIdRef = {
+    get current() {
+      return activeChatId;
+    },
+    set current(value: string) {
+      setActiveChatId(value);
+    },
+  };
+
   // router を直接フック内で取得
   const router = useRouter();
   const pathname = usePathname();
@@ -38,7 +46,8 @@ export const useChat = () => {
    * @param newChatid 新しいチャットID
    */
   const setPagesChatId = (newChatid: string) => {
-    pagesChatIdRef.current = newChatid;
+    // activeChatIdアトムを更新
+    setActiveChatId(newChatid);
     setPagesChatIdState(newChatid);
     // チャットIDが変更されたらfrontChatも更新
     if (richChats[newChatid]) {
@@ -55,28 +64,30 @@ export const useChat = () => {
     const uuid = self.crypto.randomUUID();
 
     // 新しいチャットIDでリッチチャットを空に初期化
-    const newRichChats = {...richChats};
+    const newRichChats = { ...richChats };
     newRichChats[uuid] = [];
     setRichChats(newRichChats);
-    
+
     // フロントチャットを明示的に空にする
     setFrontChat([]);
-    
+
     // チャットIDを設定
     setPagesChatId(uuid);
-    
+    console.log("newChat", uuid);
+    console.log("pagesChatIdRef.current", pagesChatIdRef.current);
+
     // URLを更新
     if (pathname === "/") {
       router.replace(`/?c=${uuid}`);
     } else {
       router.push(`/?c=${uuid}`);
     }
-    
+
     // モバイル画面の場合、サイドバーを非表示にする
     if (!window.matchMedia("(min-width: 768px)").matches && sidebarDisplayChange) {
       sidebarDisplayChange(false);
     }
-    
+
     return uuid;
   };
 
@@ -195,6 +206,12 @@ export const useChat = () => {
         }`;
       const variables = { chatids };
       await fetchAppSync({ query, variables });
+
+      // 現在表示中のチャットが削除対象に含まれている場合、フロントエンド側のデータもクリア
+      if (chatids.includes(pagesChatIdRef.current)) {
+        newChat();
+      }
+
       // チャット履歴リスト更新
       await getChatHistory();
     } catch (e) {
@@ -248,6 +265,6 @@ export const useChat = () => {
     fetchAppSync,
     newChat,
     setPagesChatId,
-    pagesChatIdRef
+    pagesChatIdRef,
   };
 };

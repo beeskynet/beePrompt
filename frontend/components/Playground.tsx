@@ -86,10 +86,6 @@ function Playground() {
 
   // WebSocketフックを初期化
   const { disconnectAllWebSockets, createWebSocketConnection } = useWebSocket({
-    setChats: updateChats,
-    saveChat,
-    scrollToBottom,
-    richChats,
     systemInputRef,
   });
 

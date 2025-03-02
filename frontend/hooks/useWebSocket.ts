@@ -1,7 +1,8 @@
-import { useSetAtom } from "jotai";
+import { useSetAtom, useAtom } from "jotai";
 import { Chats, Message } from "lib/store";
 import { AppAtoms } from "lib/store";
 import { useState } from "react";
+import { useChat } from "./useChat";
 
 interface WebSocketMap {
   [key: string]: WebSocket;
@@ -12,10 +13,6 @@ interface Dict<T> {
 }
 
 interface UseWebSocketProps {
-  setChats: (callback: (chats: Chats) => Chats) => void;
-  saveChat: (chatid: string, messages: Message[], sysMsg: string | undefined) => Promise<void>;
-  scrollToBottom: () => void;
-  richChats: Chats;
   systemInputRef: React.MutableRefObject<string | undefined>;
 }
 
@@ -24,9 +21,19 @@ interface UseWebSocketProps {
  * @param props - WebSocketフックの依存関係
  * @returns WebSocket関連の機能をまとめたオブジェクト
  */
-export const useWebSocket = ({ setChats, saveChat, scrollToBottom, richChats, systemInputRef }: UseWebSocketProps) => {
+export const useWebSocket = ({ systemInputRef }: UseWebSocketProps) => {
   const [websocketMap, setWebsocketMap] = useState<WebSocketMap>({});
   const setWaitingMap = useSetAtom(AppAtoms.waitingMap);
+  const [richChats] = useAtom(AppAtoms.richChats);
+  const { saveChat, updateChats: setChats } = useChat();
+  
+  // スクロールをページ下部に移動する関数
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      const messagesContainer = document.querySelector("#messages-container");
+      messagesContainer?.scrollTo(0, messagesContainer.scrollHeight);
+    }, 0);
+  };
 
   /**
    * WebSocketからのメッセージを処理する

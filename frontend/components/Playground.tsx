@@ -41,18 +41,7 @@ function Playground() {
   const [_, setSidebarDisplayChange] = useAtom(AppAtoms.sidebarDisplayChange);
 
   // useChat フックを初期化
-  const {
-    getChatHistory,
-    saveChat,
-    deleteChats,
-    displayChat,
-    updateChats,
-    setChatsEmptyMessages,
-    fetchAppSync,
-    newChat,
-    setPagesChatId,
-    pagesChatIdRef,
-  } = useChat();
+  const { getChatHistory, saveChat, displayChat, updateChats, fetchAppSync, newChat, setPagesChatId, pagesChatIdRef } = useChat();
 
   const [chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -85,16 +74,6 @@ function Playground() {
   useEffect(() => {
     setSidebarDisplayChange(() => setSidebarDisplay);
   }, [setSidebarDisplayChange]);
-
-  // スクロール時の処理
-  const onScroll = () => {
-    const el = container.current;
-    if (!el) return;
-    const rate = el.scrollTop / (el.scrollHeight - el.clientHeight);
-    if (rate > 0.99) {
-      getChatHistory(true);
-    }
-  };
 
   // スクロールをページ下部に移動する関数
   const scrollToBottom = () => {
@@ -279,13 +258,6 @@ function Playground() {
       }
     }
   };
-  const clickChatHistoryLine = (chatid: string) => async () => {
-    setIsMessageDeleteMode(false);
-    displayChat(chatid);
-    if (!window.matchMedia("(min-width: 768px)").matches) {
-      setSidebarDisplay(false);
-    }
-  };
 
   const toggleSidebar = () => {
     const content = sidebarContent === "history" ? "edit" : "history";
@@ -359,20 +331,8 @@ function Playground() {
             />
           </div>
 
-          {/* 履歴エリア - ChatHistoryコンポーネントに置き換え */}
-          <ChatHistory
-            pagesChatIdRef={pagesChatIdRef}
-            container={container}
-            onScroll={onScroll}
-            sidebarDisplay={sidebarDisplay}
-            sidebarContent={sidebarContent}
-            clickChatHistoryLine={clickChatHistoryLine}
-            deleteChats={deleteChats}
-            getChatHistory={getChatHistory}
-            setChatsEmptyMessages={setChatsEmptyMessages}
-            saveChat={saveChat}
-            systemInput={systemInput}
-          />
+          {/* 履歴エリア - ChatHistoryコンポーネントを更新 */}
+          <ChatHistory container={container} sidebarDisplay={sidebarDisplay} sidebarContent={sidebarContent} systemInput={systemInput} />
         </div>
         {/* USER・ASSISTANTメッセージエリア */}
         <div id="main-area" className="flex md:w-3/4">

@@ -1,49 +1,54 @@
 "use client";
-import React, { useRef, useState, MutableRefObject } from "react";
+import React, { useRef, useState } from "react";
 import { Input } from "@material-tailwind/react";
-import { Message, Chats, AppAtoms } from "lib/store";
+import { Message, AppAtoms } from "lib/store";
 import MaterialButton from "./MaterialButton";
 import { useAtom } from "jotai";
+import { useChat } from "../hooks/useChat";
 
 interface ChatHistoryProps {
-  pagesChatIdRef: React.MutableRefObject<string>;
   container: React.RefObject<HTMLDivElement>;
-  onScroll: () => void;
   sidebarDisplay: boolean;
   sidebarContent: string;
-  clickChatHistoryLine: (chatid: string) => () => Promise<void>;
-  deleteChats: (chatids: string[]) => Promise<void>;
-  getChatHistory: () => Promise<void>;
-  setChatsEmptyMessages: (chatid: string) => void;
-  saveChat: (chatid: string, messages: Message[], sysMsg: string | undefined, title?: string) => Promise<void>;
   systemInput: string;
 }
 
 /**
  * チャット履歴を表示・管理するコンポーネント
  */
-const ChatHistory: React.FC<ChatHistoryProps> = ({
-  pagesChatIdRef,
-  container,
-  onScroll,
-  sidebarDisplay,
-  sidebarContent,
-  clickChatHistoryLine,
-  deleteChats,
-  getChatHistory,
-  setChatsEmptyMessages,
-  saveChat,
-  systemInput,
-}) => {
+const ChatHistory: React.FC<ChatHistoryProps> = ({ container, sidebarDisplay, sidebarContent, systemInput }) => {
+  // useChatフックから関数を取得
+  const { pagesChatIdRef, getChatHistory, setChatsEmptyMessages, saveChat, displayChat, deleteChats } = useChat();
+
   // Jotaiアトムから直接ステートを取得
   const [isChatsDeleteMode, setIsChatsDeleteMode] = useAtom(AppAtoms.isChatsDeleteMode);
   const [chatHistory] = useAtom(AppAtoms.chatHistory);
   const [richChats] = useAtom(AppAtoms.richChats);
-  
+  const [sidebarDisplayChange] = useAtom(AppAtoms.sidebarDisplayChange);
+
   // 内部ステートとして管理
   const [chatidOnEditTitle, setChatidOnEditTitle] = useState("");
   const [chatsOnDeleteMode, setChatsOnDeleteMode] = useState<Message[]>([]);
   const [chatidsForDelete, setChatidsForDelete] = useState<string[]>([]);
+
+  // スクロール時の処理を内部で定義
+  const onScroll = () => {
+    const el = container.current;
+    if (!el) return;
+    const rate = el.scrollTop / (el.scrollHeight - el.clientHeight);
+    if (rate > 0.99) {
+      getChatHistory(true);
+    }
+  };
+
+  // クリックイベントハンドラを内部で定義
+  const clickChatHistoryLine = (chatid: string) => async () => {
+    setIsChatsDeleteMode(false);
+    displayChat(chatid);
+    if (!window.matchMedia("(min-width: 768px)").matches && sidebarDisplayChange) {
+      sidebarDisplayChange(false);
+    }
+  };
 
   // チャットタイトル編集用コンポーネント
   const ChatTitleEdit = ({ chat }: { chat: Message }) => {
@@ -128,35 +133,18 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({
     <div id="history-area" className={`h-full flex flex-col ${!sidebarDisplay || sidebarContent !== "history" ? "hidden" : ""} relative`}>
       <p className="text-sm text-left m-2 mt-1 text-gray-500">HISTORY</p>
       {!isChatsDeleteMode ? (
-        <MaterialButton
-          name="delete"
-          className="absolute top-0 right-0"
-          onClick={handleStartDeleteMode}
-        />
+        <MaterialButton name="delete" className="absolute top-0 right-0" onClick={handleStartDeleteMode} />
       ) : (
         <>
-          <MaterialButton
-            name="done"
-            className="absolute top-0 right-7"
-            onClick={handleConfirmDelete}
-          />
-          <MaterialButton
-            name="cancel"
-            className="absolute top-0 right-0"
-            onClick={handleCancelDelete}
-          />
+          <MaterialButton name="done" className="absolute top-0 right-7" onClick={handleConfirmDelete} />
+          <MaterialButton name="cancel" className="absolute top-0 right-0" onClick={handleCancelDelete} />
         </>
       )}
       <div className="overflow-x-hidden overflow-y-auto" ref={container} onScroll={onScroll}>
         {chatsOnDisplay.map((chat: Message, index: number) => (
           <div key={index} className="relative group">
             {isChatsDeleteMode ? (
-              <MaterialButton
-                name="delete"
-                className="absolute top-0 right-0 "
-                onClick={() => handleAddToDeleteList(chat)}
-                blur
-              />
+              <MaterialButton name="delete" className="absolute top-0 right-0 " onClick={() => handleAddToDeleteList(chat)} blur />
             ) : null}
             {!isChatsDeleteMode && pagesChatIdRef.current === chat.chatid ? (
               <MaterialButton
@@ -189,4 +177,5 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({
   );
 };
 
-export default ChatHistory; 
+export default ChatHistory;
+

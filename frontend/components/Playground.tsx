@@ -19,6 +19,7 @@ import useOnWindowRefocus from "lib/useOnWindowReforcus";
 import { useChat } from "../hooks/useChat";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useSubmit } from "../hooks/useSubmit";
+import ToolBar from "./ToolBar";
 
 function Playground() {
   useOnWindowRefocus(async () => {
@@ -32,7 +33,7 @@ function Playground() {
   const [frontChat, _setFrontChat] = useAtom(AppAtoms.frontChat); // 画面表示用チャット内容
   const [richChats, _setRichChats] = useAtom(AppAtoms.richChats); // 並列メッセージ受信によるメッセージ欠落を防ぐため、内部的にチャット内容を保持
 
-  const [messagesOnDeleteMode, setMessagesOnDeleteMode] = useAtom(AppAtoms.messagesOnDeleteMode);
+  const [messagesOnDeleteMode, _setMessagesOnDeleteMode] = useAtom(AppAtoms.messagesOnDeleteMode);
   const [systemInput, setSystemInput] = useState("");
   const [autoScroll, setAutoScroll] = useState(true);
   const [sidebarContent, setSidebarContent] = useState("history");
@@ -41,17 +42,17 @@ function Playground() {
   const [_, setSidebarDisplayChange] = useAtom(AppAtoms.sidebarDisplayChange);
 
   // useChat フックを初期化
-  const { getChatHistory, saveChat, displayChat, updateChats, fetchAppSync, newChat, setPagesChatId, activeChatId } = useChat();
+  const { getChatHistory, displayChat, updateChats, fetchAppSync, newChat, setPagesChatId, activeChatId } = useChat();
 
-  const [chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
+  const [_chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
   const [isAdmin, setIsAdmin] = useState(false);
   const selectedModel = useAtomValue(AppAtoms.selectedModel);
   const isParallel = useAtomValue(AppAtoms.isParallel);
   const submissionStatus = useAtomValue(AppAtoms.submissionStatus);
   const isResponding = useAtomValue(AppAtoms.isResponding);
-  const [isMessageDeleteMode, setIsMessageDeleteMode] = useAtom(AppAtoms.isMessageDeleteMode);
+  const [isMessageDeleteMode, _setIsMessageDeleteMode] = useAtom(AppAtoms.isMessageDeleteMode);
   const setOpenDrawer = useSetAtom(AppAtoms.drawerOpen);
-  const [settings, setSettings] = useAtom(AppAtoms.settings);
+  const [_settings, setSettings] = useAtom(AppAtoms.settings);
 
   const userTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const systemTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -352,65 +353,7 @@ function Playground() {
               </div>
             </div>
           </div>
-          <div id="tool-bar" className="flex flex-col align-start w-10 flex-shrink-0">
-            {isResponding ? <MaterialButton name="block" onClick={async () => disconnectAllWebSockets(activeChatId)} /> : null}
-            {!isMessageDeleteMode ? (
-              <>
-                <MaterialButton
-                  name="delete"
-                  disabled={isResponding}
-                  onClick={async () => {
-                    if (richChats[activeChatId].length === 0) return;
-                    if (settings.appSettings.copyChatOnMessageDeleteMode) {
-                      // チャットメッージを削除モードに入る際にメッセージをコピーする
-                      const newTitle = "copy_" + chatHistory.filter((chat: Message) => chat.chatid === activeChatId)[0].title;
-                      const uuid = self.crypto.randomUUID();
-                      await saveChat(uuid, richChats[activeChatId], systemInput, newTitle);
-                    }
-                    setMessagesOnDeleteMode(JSON.parse(JSON.stringify(richChats[activeChatId])));
-                    setIsMessageDeleteMode(true);
-                  }}
-                />
-                <MaterialButton name="settings_applications" onClick={() => setOpenDrawer("AppSettingDrawer")} />
-                <div className="flex justify-end cursor-pointer">
-                  <span onClick={() => setOpenDrawer("OpenAISettingDrawer")} style={{ padding: 6 }}>
-                    <img src="../openai-logomark.svg" width="20" height="20" />
-                  </span>
-                </div>
-                <div className="flex justify-end cursor-pointer">
-                  <span onClick={() => setOpenDrawer("ClaudeSettingDrawer")} style={{ padding: 0 }}>
-                    <img src="../anthropic.ico" width="30" height="30" />
-                  </span>
-                </div>
-                <div className="flex justify-end cursor-pointer">
-                  <span onClick={() => setOpenDrawer("CohereSettingDrawer")} style={{ padding: 5 }}>
-                    <img src="../cohere-logo.svg" width="20" height="20" />
-                  </span>
-                </div>
-              </>
-            ) : (
-              <>
-                <MaterialButton
-                  name="done"
-                  onClick={async () => {
-                    updateChats((chats: Chats) => {
-                      chats[activeChatId] = messagesOnDeleteMode;
-                      return chats;
-                    });
-                    setIsMessageDeleteMode(false);
-                    await saveChat(activeChatId, messagesOnDeleteMode, systemInput);
-                  }}
-                />
-                <MaterialButton
-                  name="cancel"
-                  onClick={() => {
-                    setMessagesOnDeleteMode([]);
-                    setIsMessageDeleteMode(false);
-                  }}
-                />
-              </>
-            )}
-          </div>
+          <ToolBar disconnectAllWebSockets={disconnectAllWebSockets} />
         </div>
       </div>
     </div>

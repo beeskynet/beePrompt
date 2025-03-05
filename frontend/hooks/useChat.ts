@@ -1,6 +1,5 @@
 import { useAtom } from "jotai";
 import { AppAtoms, Message, Chats } from "lib/store";
-import { useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { apiUrls } from "lib/environments";
@@ -14,10 +13,7 @@ interface Dict<T> {
  * @returns チャット関連の機能をまとめたオブジェクト
  */
 export const useChat = () => {
-  // useState で内部状態を管理
-  const [chatHistoryLastEvaluatedKey, setChatHistoryLastEvaluatedKey] = useState<string>("");
-
-  // 必要な状態を直接フック内で取得
+  const [chatHistoryLastEvaluatedKey, setChatHistoryLastEvaluatedKey] = useAtom(AppAtoms.chatHistoryLastEvaluatedKey);
   const [isChatsDeleteMode, _setIsChatsDeleteMode] = useAtom(AppAtoms.isChatsDeleteMode);
   const [_chatHistory, setChatHistory] = useAtom(AppAtoms.chatHistory);
   const [_frontChat, setFrontChat] = useAtom(AppAtoms.frontChat);
@@ -27,7 +23,6 @@ export const useChat = () => {
   const [sidebarDisplayChange, _setSidebarDisplayChange] = useAtom(AppAtoms.sidebarDisplayChange);
   const [activeChatId, setActiveChatId] = useAtom(AppAtoms.activeChatIdRef);
 
-  // router を直接フック内で取得
   const router = useRouter();
   const pathname = usePathname();
 

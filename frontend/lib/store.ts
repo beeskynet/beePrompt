@@ -12,8 +12,9 @@ export const modelsGens: { [key: string]: string } = {
   "gpt-4o-2024-08-06": "gpt-4o",
   "gpt-4.5-preview-2025-02-27": "gpt-4.5-preview",
   "o1-mini-2024-09-12": "gpt-o1-mini",
+  "o3-mini-2025-01-31": "gpt-o3-mini",
   "o1-preview-2024-09-12": "gpt-o1-preview",
-  //"o3-mini-2025-01-31": "gpt-o3-mini",
+  "o1-2024-12-17": "gpt-o1",
   "anthropic.claude-instant-v1": "claude-instant-v1",
   "anthropic.claude-v2": "claude-v2",
   "anthropic.claude-v2:1": "claude-v2.1",
@@ -60,6 +61,8 @@ delete models["gpt-4-1106-preview"];
 delete models["gpt-4-0125-preview"];
 delete models["gpt-4-turbo-2024-04-09"];
 delete models["gpt-4o-2024-05-13"];
+delete models["o1-mini-2024-09-12"];
+delete models["o1-preview-2024-09-12"];
 delete models["anthropic.claude-instant-v1"];
 delete models["anthropic.claude-v2"];
 delete models["anthropic.claude-v2:1"];

@@ -48,29 +48,26 @@ export interface Chats {
 // セレクトボックス様モデルリスト
 export const models: { [key: string]: string } = { ...modelsGens };
 // 古いモデルを消す
-delete models["anthropic.claude-v2"];
-delete models["gpt-3.5-turbo-1106"];
-delete models["gpt-3.5-turbo-0125"];
-delete models["gpt-4-1106-preview"];
-delete models["gpt-4-0125-preview"];
-delete models["gpt-4-turbo-2024-04-09"];
-delete models["anthropic.claude-instant-v1"];
-delete models["anthropic.claude-v2"];
-delete models["anthropic.claude-v2:1"];
-delete models["gpt-4-1106-preview"];
-delete models["gpt-4-0125-preview"];
-delete models["gpt-4-turbo-2024-04-09"];
-delete models["gpt-4o-2024-05-13"];
-delete models["o1-mini-2024-09-12"];
-delete models["o1-preview-2024-09-12"];
-delete models["anthropic.claude-instant-v1"];
-delete models["anthropic.claude-v2"];
-delete models["anthropic.claude-v2:1"];
-delete models["anthropic.claude-3-sonnet-20240229-v1:0"];
-delete models["claude-3-sonnet-20240229"];
-delete models["claude-3-haiku-20240307"];
-delete models["claude-3-5-sonnet-20240620"];
-delete models["claude-3-5-sonnet-20241022"];
+const modelsToDelete = [
+  "anthropic.claude-v2",
+  "gpt-3.5-turbo-1106",
+  "gpt-3.5-turbo-0125",
+  "gpt-4-1106-preview",
+  "gpt-4-0125-preview",
+  "gpt-4-turbo-2024-04-09",
+  "anthropic.claude-instant-v1",
+  "anthropic.claude-v2",
+  "anthropic.claude-v2:1",
+  "gpt-4o-2024-05-13",
+  "o1-mini-2024-09-12",
+  "o1-preview-2024-09-12",
+  "anthropic.claude-3-sonnet-20240229-v1:0",
+  "claude-3-sonnet-20240229",
+  "claude-3-haiku-20240307",
+  "claude-3-5-sonnet-20240620",
+  "claude-3-5-sonnet-20241022",
+];
+modelsToDelete.forEach((model) => delete models[model]);
 
 const initStatus: { [key: string]: boolean } = {};
 Object.keys(models).map((model) => (initStatus[model] = true));

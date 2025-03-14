@@ -70,7 +70,14 @@ function DropdownSelect() {
   const selectOption = async (key: string) => {
     const copied = JSON.parse(JSON.stringify(settings));
     if (isParallel) {
-      const newSubmissionStatus = { ...submissionStatus, [key]: !submissionStatus[key] };
+      const newSubmissionStatus: Record<string, boolean> = {};
+
+      // modelsに含まれるキーのみを処理
+      Object.keys(models).forEach((modelKey) => {
+        // 選択されたキーは反転、それ以外は現在の値を保持
+        newSubmissionStatus[modelKey] = modelKey === key ? !submissionStatus[modelKey] : !!submissionStatus[modelKey];
+      });
+
       setSubmissionStatus(newSubmissionStatus);
       copied.modelSelection.submissionStatus = newSubmissionStatus;
     } else {

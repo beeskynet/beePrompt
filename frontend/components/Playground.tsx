@@ -5,7 +5,7 @@ import DropdownSelect from "./DropdownSelect";
 import { Button } from "@material-tailwind/react";
 import { fetchAuthSession, signOut } from "aws-amplify/auth";
 import { withAuthenticator } from "@aws-amplify/ui-react";
-import { AppAtoms, Message, Chats } from "lib/store";
+import { AppAtoms, Message, Chats, models } from "lib/store";
 import { useAtom, useSetAtom, useAtomValue } from "jotai";
 import MaterialButton from "./MaterialButton";
 import SettingsDrawer from "./SettingsDrawer";
@@ -230,7 +230,7 @@ function Playground() {
       });
     } else {
       // 並列処理の場合
-      for (const [i, model] of Object.entries(Object.keys(submissionStatus))) {
+      for (const [i, model] of Object.entries(Object.keys(models))) {
         if (submissionStatus[model]) {
           setTimeout(
             () =>

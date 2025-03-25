@@ -149,9 +149,6 @@ function Playground() {
       // 厳密な等価ではなく、余裕を持たせた判定に変更（20px以内なら最下部とみなす）
       const scrollBottom = el.scrollHeight - el.scrollTop;
       const isAtBottom = Math.abs(scrollBottom - el.clientHeight) < SCROLL_BOTTOM_THRESHOLD;
-      console.info('【デバッグ】スクロール位置チェック - 下部にありますか？', isAtBottom);
-      console.info('【デバッグ】scrollHeight:', el.scrollHeight, 'scrollTop:', el.scrollTop, 'clientHeight:', el.clientHeight);
-      console.info(`【デバッグ】scrollBottom - clientHeight = ${scrollBottom - el.clientHeight} (${SCROLL_BOTTOM_THRESHOLD}px未満なら最下部と判定)`);
       return isAtBottom;
     };
     
@@ -159,19 +156,15 @@ function Playground() {
     const handleScroll = (e: Event) => {
       // 自動スクロール中の場合はスキップ（手動スクロールのみautoScrollを更新）
       if (isAutoScrollingRef.current) {
-        console.info('【デバッグ】自動スクロール中のためautoScroll更新をスキップします');
         return;
       }
       
       const target = e.target as HTMLElement;
       const isAtBottom = atBottom(target);
-      console.info('【デバッグ】手動スクロールイベント発生 - 現在のautoScroll値:', autoScroll);
       
       if (isAtBottom && !autoScroll) {
-        console.info('【デバッグ】下部にあるのでautoScrollをtrueに設定します');
         setAutoScroll(true);
       } else if (!isAtBottom && autoScroll) {
-        console.info('【デバッグ】下部から離れたのでautoScrollをfalseに設定します');
         setAutoScroll(false);
       }
     };
@@ -180,7 +173,6 @@ function Playground() {
     const handleWheel = (e: WheelEvent) => {
       // 上向きスクロール（負のdeltaY）の場合のみ処理
       if (e.deltaY < 0) {
-        console.info('【デバッグ】ホイールで上方向へスクロール - autoScrollをfalseに設定します');
         // 明示的に上向きに動かした場合は、位置に関わらずautoScrollをオフに
         setAutoScroll(false);
       }
@@ -198,7 +190,6 @@ function Playground() {
         
         // 上方向へのスワイプ（正のdeltaY）を検出
         if (deltaY > 10) { // 小さな動きは無視
-          console.info('【デバッグ】タッチで上方向へスクロール - autoScrollをfalseに設定します');
           setAutoScroll(false);
           
           // 一度検出したら、このタッチシーケンス中は再度処理しないよう削除
@@ -222,20 +213,17 @@ function Playground() {
     // イベントリスナーの登録
     const msgContainer = document.querySelector("#messages-container");
     if (msgContainer) {
-      console.info('【デバッグ】スクロールイベントリスナーを設定しました（autoScroll値:', autoScroll, '）');
       msgContainer.addEventListener("scroll", handleScroll);
       msgContainer.addEventListener("wheel", handleWheel as EventListener);
       msgContainer.addEventListener("touchstart", handleTouchStart as EventListener, { passive: true });
       
       // クリーンアップ関数（イベントリスナーの削除）
       return () => {
-        console.info('【デバッグ】スクロールイベントリスナーを削除します');
         msgContainer.removeEventListener("scroll", handleScroll);
         msgContainer.removeEventListener("wheel", handleWheel as EventListener);
         msgContainer.removeEventListener("touchstart", handleTouchStart as EventListener);
       };
     } else {
-      console.info('【デバッグ】メッセージコンテナが見つからないためスクロールイベントリスナーを設定できませんでした');
       // コンテナが見つからない場合も空のクリーンアップ関数を返す
       return () => {};
     }

@@ -58,8 +58,6 @@ export const useChat = () => {
 
     // チャットIDを設定
     setPagesChatId(uuid);
-    console.log("newChat", uuid);
-    console.log("activeChatId", activeChatId);
 
     // URLを更新
     if (pathname === "/") {

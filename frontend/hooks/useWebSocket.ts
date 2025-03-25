@@ -37,17 +37,13 @@ export const useWebSocket = ({ systemInputRef }: UseWebSocketProps) => {
   // スクロール位置判定の許容差分（px）
   const SCROLL_BOTTOM_THRESHOLD = 20;
   
-  // デバッグ用: autoScrollの値の変化を監視
+  // autoScrollの値の変化を監視
   useEffect(() => {
-    console.info('【デバッグ-WS】autoScroll状態が変更されました:', autoScroll);
-    
     // autoScrollがfalseになったとき、ユーザーが上へスクロールしたことを記録
     if (!autoScroll) {
       userScrolledUpRef.current = true;
-      console.info('【デバッグ-WS】ユーザーが上へスクロールしたフラグをONにしました');
     } else {
       userScrolledUpRef.current = false;
-      console.info('【デバッグ-WS】ユーザーが上へスクロールしたフラグをOFFにしました');
     }
   }, [autoScroll]);
   
@@ -60,38 +56,29 @@ export const useWebSocket = ({ systemInputRef }: UseWebSocketProps) => {
     const store = getDefaultStore();
     const currentAutoScroll = store.get(AppAtoms.autoScroll);
     
-    // デバッグ用: スクロール関数が呼ばれる度に現在のautoScroll値を出力
-    console.info('【デバッグ-WS】scrollToBottom呼び出し時のautoScroll値:', currentAutoScroll);
-    
     // ユーザーがスクロールアップしていて、autoScrollがfalseの場合はスクロールしない
     if (userScrolledUpRef.current && !currentAutoScroll) {
-      console.info('【デバッグ-WS】ユーザーが意図的に上へスクロールしたためスクロールをスキップします');
       return;
     }
     
     // autoScrollがfalseの場合はスクロールしない（上記の条件に合致しない場合）
     if (!currentAutoScroll) {
-      console.info('【デバッグ-WS】autoScroll=falseのためスクロールをスキップします');
       return;
     }
     
     setTimeout(() => {
       // 自動スクロールフラグを立てる（手動スクロールと区別するため）
       isAutoScrollingRef.current = true;
-      console.info('【デバッグ-WS】自動スクロールフラグON');
       
       const messagesContainer = document.querySelector("#messages-container");
       if (messagesContainer) {
-        console.info('【デバッグ-WS】メッセージコンテナを下部にスクロールします');
         messagesContainer.scrollTo(0, messagesContainer.scrollHeight);
         
         // 自動スクロール完了後、少し遅れてフラグをOFFにする
         setTimeout(() => {
           isAutoScrollingRef.current = false;
-          console.info('【デバッグ-WS】自動スクロールフラグOFF');
         }, 100);
       } else {
-        console.info('【デバッグ-WS】メッセージコンテナが見つかりません');
         isAutoScrollingRef.current = false;
       }
     }, 0);
@@ -105,9 +92,6 @@ export const useWebSocket = ({ systemInputRef }: UseWebSocketProps) => {
     const scrollBottom = el.scrollHeight - el.scrollTop;
     // 閾値を拡大（20px以内なら最下部とみなす）
     const isAtBottom = Math.abs(scrollBottom - el.clientHeight) < SCROLL_BOTTOM_THRESHOLD;
-    console.info('【デバッグ-WS】スクロール位置チェック - 下部にありますか？', isAtBottom);
-    console.info('【デバッグ-WS】scrollHeight:', el.scrollHeight, 'scrollTop:', el.scrollTop, 'clientHeight:', el.clientHeight);
-    console.info(`【デバッグ-WS】scrollBottom - clientHeight = ${scrollBottom - el.clientHeight} (${SCROLL_BOTTOM_THRESHOLD}px未満なら最下部と判定)`);
     return isAtBottom;
   };
 
@@ -118,19 +102,15 @@ export const useWebSocket = ({ systemInputRef }: UseWebSocketProps) => {
   const onMessage = useCallback(async (event: MessageEvent) => {
     if (!event.data || event.data.startsWith('{"message": "Endpoint request timed out"')) return; // httpリクエスト正常終了応答=event.dataブランク
 
-    // デバッグ用: 現在の処理で使用されるautoScroll値をリアルタイムに取得
+    // 現在の処理で使用されるautoScroll値をリアルタイムに取得
     const store = getDefaultStore();
     const currentAutoScroll = store.get(AppAtoms.autoScroll); // リアルタイムにautoScroll値を取得
-    
-    console.info('【デバッグ-WS】onMessage実行 - 現在のautoScroll値(直接取得):', currentAutoScroll);
-    console.info('【デバッグ-WS】ユーザースクロールアップフラグ:', userScrolledUpRef.current);
 
     // メッセージ処理前のスクロール位置をチェック
     const messagesContainer = document.querySelector("#messages-container");
     let wasAtBottom = false;
     if (messagesContainer) {
       wasAtBottom = isScrolledToBottom(messagesContainer as HTMLElement);
-      console.info('【デバッグ-WS】メッセージ処理前のスクロール位置 - 下部にありますか？', wasAtBottom);
     }
 
     const cleanupWebSocket = (dtm: string | void) => {
@@ -149,10 +129,6 @@ export const useWebSocket = ({ systemInputRef }: UseWebSocketProps) => {
       if (dtm === undefined) {
         console.error("想定外のレスポンス形式", event.data);
       } else if (content !== undefined) {
-        // デバッグ用: メッセージ受信時のautoScroll状態
-        console.info('【デバッグ-WS】メッセージ受信時のautoScroll値(直接取得):', currentAutoScroll);
-        console.info('【デバッグ-WS】メッセージのDTM:', dtm, 'チャットID:', chatid);
-        
         // メッセージ追記
         setChats((chats: Chats) => {
           const messages = chats[chatid];
@@ -168,9 +144,8 @@ export const useWebSocket = ({ systemInputRef }: UseWebSocketProps) => {
           return chats;
         });
         
-        // デバッグ用: スクロール実行直前のautoScroll状態を再度確認（変わっているかもしれないので改めて取得）
+        // スクロール実行直前のautoScroll状態を再度確認
         const finalAutoScroll = store.get(AppAtoms.autoScroll);
-        console.info('【デバッグ-WS】scrollToBottom実行前の最終autoScroll値(再取得):', finalAutoScroll);
         
         // ユーザーが手動スクロールしていない場合のみスクロール
         // 1. ユーザーが上へスクロールしていない
@@ -178,14 +153,10 @@ export const useWebSocket = ({ systemInputRef }: UseWebSocketProps) => {
         if (!userScrolledUpRef.current && (finalAutoScroll || wasAtBottom)) {
           // 自動スクロールを有効化する条件 - 最下部にいる場合のみ
           if (wasAtBottom && !finalAutoScroll) {
-            console.info('【デバッグ-WS】下部にいて、ユーザーがスクロールアップしていないため、autoScrollをtrueに設定します');
             store.set(AppAtoms.autoScroll, true);
           }
         
-          console.info('【デバッグ-WS】スクロールを実行します');
           scrollToBottom();
-        } else {
-          console.info('【デバッグ-WS】スクロールをスキップします - ユーザーが意図的にスクロールアップしています');
         }
       } else if (done !== undefined) {
         // メッセージ終了
@@ -244,7 +215,6 @@ export const useWebSocket = ({ systemInputRef }: UseWebSocketProps) => {
     // ユーザーが新しいメッセージを送ったので、ユーザーは最新のレスポンスを見たいはず
     userScrolledUpRef.current = false;
     getDefaultStore().set(AppAtoms.autoScroll, true);
-    console.info('【デバッグ-WS】メッセージ送信時: autoScrollをtrueに設定し、スクロールアップフラグをリセットしました');
     
     const websocket = new WebSocket(wssUrl);
     setWebsocketMap((map: WebSocketMap) => {
@@ -285,7 +255,6 @@ export const useWebSocket = ({ systemInputRef }: UseWebSocketProps) => {
   // ユーザーが明示的にスクロールアップしたことを記録する関数（外部から呼び出し用）
   const setUserScrolledUp = useCallback((value: boolean) => {
     userScrolledUpRef.current = value;
-    console.info('【デバッグ-WS】ユーザースクロールアップフラグを手動設定:', value);
   }, []);
 
   return {

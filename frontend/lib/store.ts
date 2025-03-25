@@ -88,6 +88,7 @@ const systemInput = atom("");
 const drawerOpen = atom<string | boolean | null>(null);
 const activeChatIdRef = atom("");
 const chatHistoryLastEvaluatedKey = atom("");
+const autoScroll = atom(true); // スクロールの自動制御用アトム
 const settings = atom({
   modelSettings: {},
   appSettings: {
@@ -122,4 +123,5 @@ export const AppAtoms = {
   sidebarDisplayChange,
   activeChatIdRef,
   chatHistoryLastEvaluatedKey,
+  autoScroll, // エクスポート
 };

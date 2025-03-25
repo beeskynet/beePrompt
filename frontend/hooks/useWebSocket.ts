@@ -1,8 +1,9 @@
-import { useSetAtom, useAtom } from "jotai";
+import { useSetAtom, useAtom, useAtomValue } from "jotai";
 import { Chats, Message } from "lib/store";
 import { AppAtoms } from "lib/store";
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useChat } from "./useChat";
+import { getDefaultStore } from "jotai";
 
 interface WebSocketMap {
   [key: string]: WebSocket;
@@ -25,22 +26,112 @@ export const useWebSocket = ({ systemInputRef }: UseWebSocketProps) => {
   const [websocketMap, setWebsocketMap] = useState<WebSocketMap>({});
   const setWaitingMap = useSetAtom(AppAtoms.waitingMap);
   const [richChats] = useAtom(AppAtoms.richChats);
+  // useAtomValueを使用してレンダリング時のautoScroll値を取得
+  const autoScroll = useAtomValue(AppAtoms.autoScroll);
   const { saveChat, updateChats: setChats } = useChat();
   
-  // スクロールをページ下部に移動する関数
-  const scrollToBottom = () => {
+  // 自動スクロール実行中かどうかを示すフラグ
+  const isAutoScrollingRef = useRef<boolean>(false);
+  // ユーザーが明示的に上へスクロールしたことを示すフラグ
+  const userScrolledUpRef = useRef<boolean>(false);
+  // スクロール位置判定の許容差分（px）
+  const SCROLL_BOTTOM_THRESHOLD = 20;
+  
+  // デバッグ用: autoScrollの値の変化を監視
+  useEffect(() => {
+    console.info('【デバッグ-WS】autoScroll状態が変更されました:', autoScroll);
+    
+    // autoScrollがfalseになったとき、ユーザーが上へスクロールしたことを記録
+    if (!autoScroll) {
+      userScrolledUpRef.current = true;
+      console.info('【デバッグ-WS】ユーザーが上へスクロールしたフラグをONにしました');
+    } else {
+      userScrolledUpRef.current = false;
+      console.info('【デバッグ-WS】ユーザーが上へスクロールしたフラグをOFFにしました');
+    }
+  }, [autoScroll]);
+  
+  /**
+   * スクロールをページ下部に移動する関数
+   * autoScrollがtrueの場合のみスクロールを実行する
+   */
+  const scrollToBottom = useCallback(() => {
+    // 現在のautoScroll値を直接取得（フック外で使用するため）
+    const store = getDefaultStore();
+    const currentAutoScroll = store.get(AppAtoms.autoScroll);
+    
+    // デバッグ用: スクロール関数が呼ばれる度に現在のautoScroll値を出力
+    console.info('【デバッグ-WS】scrollToBottom呼び出し時のautoScroll値:', currentAutoScroll);
+    
+    // ユーザーがスクロールアップしていて、autoScrollがfalseの場合はスクロールしない
+    if (userScrolledUpRef.current && !currentAutoScroll) {
+      console.info('【デバッグ-WS】ユーザーが意図的に上へスクロールしたためスクロールをスキップします');
+      return;
+    }
+    
+    // autoScrollがfalseの場合はスクロールしない（上記の条件に合致しない場合）
+    if (!currentAutoScroll) {
+      console.info('【デバッグ-WS】autoScroll=falseのためスクロールをスキップします');
+      return;
+    }
+    
     setTimeout(() => {
+      // 自動スクロールフラグを立てる（手動スクロールと区別するため）
+      isAutoScrollingRef.current = true;
+      console.info('【デバッグ-WS】自動スクロールフラグON');
+      
       const messagesContainer = document.querySelector("#messages-container");
-      messagesContainer?.scrollTo(0, messagesContainer.scrollHeight);
+      if (messagesContainer) {
+        console.info('【デバッグ-WS】メッセージコンテナを下部にスクロールします');
+        messagesContainer.scrollTo(0, messagesContainer.scrollHeight);
+        
+        // 自動スクロール完了後、少し遅れてフラグをOFFにする
+        setTimeout(() => {
+          isAutoScrollingRef.current = false;
+          console.info('【デバッグ-WS】自動スクロールフラグOFF');
+        }, 100);
+      } else {
+        console.info('【デバッグ-WS】メッセージコンテナが見つかりません');
+        isAutoScrollingRef.current = false;
+      }
     }, 0);
+  }, []); // 依存配列を空にし、毎回最新の状態を取得
+
+  /**
+   * コンテナが最下部にあるかどうかを判定する関数
+   * 厳密な等価ではなく、余裕を持たせた判定を行う
+   */
+  const isScrolledToBottom = (el: HTMLElement) => {
+    const scrollBottom = el.scrollHeight - el.scrollTop;
+    // 閾値を拡大（20px以内なら最下部とみなす）
+    const isAtBottom = Math.abs(scrollBottom - el.clientHeight) < SCROLL_BOTTOM_THRESHOLD;
+    console.info('【デバッグ-WS】スクロール位置チェック - 下部にありますか？', isAtBottom);
+    console.info('【デバッグ-WS】scrollHeight:', el.scrollHeight, 'scrollTop:', el.scrollTop, 'clientHeight:', el.clientHeight);
+    console.info(`【デバッグ-WS】scrollBottom - clientHeight = ${scrollBottom - el.clientHeight} (${SCROLL_BOTTOM_THRESHOLD}px未満なら最下部と判定)`);
+    return isAtBottom;
   };
 
   /**
    * WebSocketからのメッセージを処理する
    * @param event - WebSocketのメッセージイベント
    */
-  const onMessage = async (event: MessageEvent) => {
+  const onMessage = useCallback(async (event: MessageEvent) => {
     if (!event.data || event.data.startsWith('{"message": "Endpoint request timed out"')) return; // httpリクエスト正常終了応答=event.dataブランク
+
+    // デバッグ用: 現在の処理で使用されるautoScroll値をリアルタイムに取得
+    const store = getDefaultStore();
+    const currentAutoScroll = store.get(AppAtoms.autoScroll); // リアルタイムにautoScroll値を取得
+    
+    console.info('【デバッグ-WS】onMessage実行 - 現在のautoScroll値(直接取得):', currentAutoScroll);
+    console.info('【デバッグ-WS】ユーザースクロールアップフラグ:', userScrolledUpRef.current);
+
+    // メッセージ処理前のスクロール位置をチェック
+    const messagesContainer = document.querySelector("#messages-container");
+    let wasAtBottom = false;
+    if (messagesContainer) {
+      wasAtBottom = isScrolledToBottom(messagesContainer as HTMLElement);
+      console.info('【デバッグ-WS】メッセージ処理前のスクロール位置 - 下部にありますか？', wasAtBottom);
+    }
 
     const cleanupWebSocket = (dtm: string | void) => {
       // 接続のクリーンナップ
@@ -58,6 +149,10 @@ export const useWebSocket = ({ systemInputRef }: UseWebSocketProps) => {
       if (dtm === undefined) {
         console.error("想定外のレスポンス形式", event.data);
       } else if (content !== undefined) {
+        // デバッグ用: メッセージ受信時のautoScroll状態
+        console.info('【デバッグ-WS】メッセージ受信時のautoScroll値(直接取得):', currentAutoScroll);
+        console.info('【デバッグ-WS】メッセージのDTM:', dtm, 'チャットID:', chatid);
+        
         // メッセージ追記
         setChats((chats: Chats) => {
           const messages = chats[chatid];
@@ -72,7 +167,26 @@ export const useWebSocket = ({ systemInputRef }: UseWebSocketProps) => {
           chats[chatid] = updatedMsgs;
           return chats;
         });
-        scrollToBottom();
+        
+        // デバッグ用: スクロール実行直前のautoScroll状態を再度確認（変わっているかもしれないので改めて取得）
+        const finalAutoScroll = store.get(AppAtoms.autoScroll);
+        console.info('【デバッグ-WS】scrollToBottom実行前の最終autoScroll値(再取得):', finalAutoScroll);
+        
+        // ユーザーが手動スクロールしていない場合のみスクロール
+        // 1. ユーザーが上へスクロールしていない
+        // 2. autoScrollがtrueまたは元々最下部にいた
+        if (!userScrolledUpRef.current && (finalAutoScroll || wasAtBottom)) {
+          // 自動スクロールを有効化する条件 - 最下部にいる場合のみ
+          if (wasAtBottom && !finalAutoScroll) {
+            console.info('【デバッグ-WS】下部にいて、ユーザーがスクロールアップしていないため、autoScrollをtrueに設定します');
+            store.set(AppAtoms.autoScroll, true);
+          }
+        
+          console.info('【デバッグ-WS】スクロールを実行します');
+          scrollToBottom();
+        } else {
+          console.info('【デバッグ-WS】スクロールをスキップします - ユーザーが意図的にスクロールアップしています');
+        }
       } else if (done !== undefined) {
         // メッセージ終了
         setWaitingMap((waitingMap: WebSocketMap) => ({ ...waitingMap, [dtm]: 0 }));
@@ -117,13 +231,36 @@ export const useWebSocket = ({ systemInputRef }: UseWebSocketProps) => {
       console.error("event.data = ", event.data);
       alert("システムエラーが発生しました。");
     }
-  };
+  }, [setChats, setWaitingMap, setWebsocketMap, saveChat, richChats, scrollToBottom]); // autoScrollは依存配列から削除し、毎回直接取得する
+
+  /**
+   * 新しいWebSocket接続を作成し、メッセージを送信する
+   * @param wssUrl - WebSocketサーバーのURL
+   * @param message - 送信するメッセージ
+   * @param dtm - メッセージの日時識別子
+   */
+  const createWebSocketConnection = useCallback((wssUrl: string, message: string, dtm: string) => {
+    // メッセージ送信時は自動的にスクロールを有効にする
+    // ユーザーが新しいメッセージを送ったので、ユーザーは最新のレスポンスを見たいはず
+    userScrolledUpRef.current = false;
+    getDefaultStore().set(AppAtoms.autoScroll, true);
+    console.info('【デバッグ-WS】メッセージ送信時: autoScrollをtrueに設定し、スクロールアップフラグをリセットしました');
+    
+    const websocket = new WebSocket(wssUrl);
+    setWebsocketMap((map: WebSocketMap) => {
+      map[dtm] = websocket;
+      return map;
+    });
+    websocket.onmessage = onMessage;
+    websocket.onopen = () => websocket.send(message);
+    return websocket;
+  }, [onMessage, setWebsocketMap]);
 
   /**
    * すべてのWebSocket接続を切断する
    * @param activeChatId - 現在のチャットID
    */
-  const disconnectAllWebSockets = (activeChatId: string) => {
+  const disconnectAllWebSockets = useCallback((activeChatId: string) => {
     // 全websocket接続を切断
     setWebsocketMap((websocketMap: WebSocketMap) => {
       Object.keys(websocketMap).forEach((dtm) => {
@@ -143,29 +280,22 @@ export const useWebSocket = ({ systemInputRef }: UseWebSocketProps) => {
       chats[activeChatId] = updatedMsgs;
       return chats;
     });
-  };
+  }, [setWebsocketMap, setWaitingMap, setChats]);
 
-  /**
-   * 新しいWebSocket接続を作成し、メッセージを送信する
-   * @param wssUrl - WebSocketサーバーのURL
-   * @param message - 送信するメッセージ
-   * @param dtm - メッセージの日時識別子
-   */
-  const createWebSocketConnection = (wssUrl: string, message: string, dtm: string) => {
-    const websocket = new WebSocket(wssUrl);
-    setWebsocketMap((map: WebSocketMap) => {
-      map[dtm] = websocket;
-      return map;
-    });
-    websocket.onmessage = onMessage;
-    websocket.onopen = () => websocket.send(message);
-    return websocket;
-  };
+  // ユーザーが明示的にスクロールアップしたことを記録する関数（外部から呼び出し用）
+  const setUserScrolledUp = useCallback((value: boolean) => {
+    userScrolledUpRef.current = value;
+    console.info('【デバッグ-WS】ユーザースクロールアップフラグを手動設定:', value);
+  }, []);
 
   return {
     disconnectAllWebSockets,
     createWebSocketConnection,
     websocketMap,
+    scrollToBottom,
+    isAutoScrollingRef,
+    userScrolledUpRef,
+    setUserScrolledUp,
   };
 };
 

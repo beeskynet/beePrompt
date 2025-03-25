@@ -10,7 +10,6 @@ interface SubmitParams {
   activeChatId: string;
   richChats: Chats;
   setChats: (callback: (chats: Chats) => Chats) => void;
-  scrollToBottom: () => void;
   createWebSocketConnection: (wssUrl: string, message: string, dtm: string) => WebSocket;
   temperature: {
     gpt: number;
@@ -41,7 +40,6 @@ export const useSubmit = () => {
     activeChatId,
     richChats,
     setChats,
-    scrollToBottom,
     createWebSocketConnection,
     temperature,
     penalties,
@@ -53,7 +51,6 @@ export const useSubmit = () => {
         chats[activeChatId] = [...messages, { role: "assistant", model: model, content: null, dtm }];
         return chats;
       });
-      scrollToBottom();
 
       // メッセージ送信
       const session = await fetchAuthSession();

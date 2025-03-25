@@ -35,7 +35,7 @@ function Playground() {
 
   const [messagesOnDeleteMode, _setMessagesOnDeleteMode] = useAtom(AppAtoms.messagesOnDeleteMode);
   const [systemInput, setSystemInput] = useState("");
-  const [autoScroll, setAutoScroll] = useState(true);
+  const [autoScroll, setAutoScroll] = useAtom(AppAtoms.autoScroll); // jotaiでautoScrollを管理
   const [sidebarContent, setSidebarContent] = useState("history");
   const [sidebarDisplay, setSidebarDisplay] = useState(true);
   // サイドバー表示状態変更コールバックをatomにセット
@@ -57,8 +57,6 @@ function Playground() {
   const userTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const systemTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const textareaContRef = useRef(null);
-  const autoScrollRef: { current: boolean | undefined } = useRef();
-  autoScrollRef.current = autoScroll;
   const systemInputRef: { current: string | undefined } = useRef();
 
   const [temperatureGpt, setTemperatureGpt] = useState(1);
@@ -76,17 +74,8 @@ function Playground() {
     setSidebarDisplayChange(() => setSidebarDisplay);
   }, [setSidebarDisplayChange]);
 
-  // スクロールをページ下部に移動する関数
-  const scrollToBottom = () => {
-    if (!autoScrollRef.current) return;
-    setTimeout(() => {
-      const messagesContainer = document.querySelector("#messages-container");
-      messagesContainer?.scrollTo(0, messagesContainer.scrollHeight);
-    }, 0);
-  };
-
   // WebSocketフックを初期化
-  const { disconnectAllWebSockets, createWebSocketConnection } = useWebSocket({
+  const { disconnectAllWebSockets, createWebSocketConnection, isAutoScrollingRef } = useWebSocket({
     systemInputRef,
   });
 
@@ -148,17 +137,109 @@ function Playground() {
       });
     };
     initUserid();
+  }, []);
 
-    // スクロール操作でメッセージコンテナの下端から離れたらオートスクロールをオフに
-    const atBottom = (el: HTMLElement) => el.scrollHeight - el.scrollTop === el.clientHeight;
-    document.querySelector("#messages-container")?.addEventListener("scroll", (e) => {
-      if (atBottom(e.target as HTMLElement)) {
+  // スクロール操作でメッセージコンテナの下端から離れたらオートスクロールをオフに
+  // autoScrollを依存配列に入れて、値の変更を確実に検知できるようにする
+  useEffect(() => {
+    // スクロール位置判定の許容差分（px）- useWebSocket.tsと同じ値
+    const SCROLL_BOTTOM_THRESHOLD = 20;
+    
+    const atBottom = (el: HTMLElement) => {
+      // 厳密な等価ではなく、余裕を持たせた判定に変更（20px以内なら最下部とみなす）
+      const scrollBottom = el.scrollHeight - el.scrollTop;
+      const isAtBottom = Math.abs(scrollBottom - el.clientHeight) < SCROLL_BOTTOM_THRESHOLD;
+      console.info('【デバッグ】スクロール位置チェック - 下部にありますか？', isAtBottom);
+      console.info('【デバッグ】scrollHeight:', el.scrollHeight, 'scrollTop:', el.scrollTop, 'clientHeight:', el.clientHeight);
+      console.info(`【デバッグ】scrollBottom - clientHeight = ${scrollBottom - el.clientHeight} (${SCROLL_BOTTOM_THRESHOLD}px未満なら最下部と判定)`);
+      return isAtBottom;
+    };
+    
+    // スクロールハンドラー関数
+    const handleScroll = (e: Event) => {
+      // 自動スクロール中の場合はスキップ（手動スクロールのみautoScrollを更新）
+      if (isAutoScrollingRef.current) {
+        console.info('【デバッグ】自動スクロール中のためautoScroll更新をスキップします');
+        return;
+      }
+      
+      const target = e.target as HTMLElement;
+      const isAtBottom = atBottom(target);
+      console.info('【デバッグ】手動スクロールイベント発生 - 現在のautoScroll値:', autoScroll);
+      
+      if (isAtBottom && !autoScroll) {
+        console.info('【デバッグ】下部にあるのでautoScrollをtrueに設定します');
         setAutoScroll(true);
-      } else {
+      } else if (!isAtBottom && autoScroll) {
+        console.info('【デバッグ】下部から離れたのでautoScrollをfalseに設定します');
         setAutoScroll(false);
       }
-    });
-  }, []);
+    };
+    
+    // ホイールイベントハンドラー - より明確なユーザーの手動スクロール意図を検出
+    const handleWheel = (e: WheelEvent) => {
+      // 上向きスクロール（負のdeltaY）の場合のみ処理
+      if (e.deltaY < 0) {
+        console.info('【デバッグ】ホイールで上方向へスクロール - autoScrollをfalseに設定します');
+        // 明示的に上向きに動かした場合は、位置に関わらずautoScrollをオフに
+        setAutoScroll(false);
+      }
+    };
+    
+    // タッチスクロールイベントハンドラー（モバイルデバイス用）
+    const handleTouchStart = (e: TouchEvent) => {
+      // タッチ開始位置を記録
+      const startY = e.touches[0].clientY;
+      
+      // タッチムーブイベントを一時的に追加
+      const handleTouchMove = (moveEvent: TouchEvent) => {
+        const currentY = moveEvent.touches[0].clientY;
+        const deltaY = currentY - startY;
+        
+        // 上方向へのスワイプ（正のdeltaY）を検出
+        if (deltaY > 10) { // 小さな動きは無視
+          console.info('【デバッグ】タッチで上方向へスクロール - autoScrollをfalseに設定します');
+          setAutoScroll(false);
+          
+          // 一度検出したら、このタッチシーケンス中は再度処理しないよう削除
+          document.removeEventListener('touchmove', handleTouchMove as EventListener);
+        }
+      };
+      
+      // タッチ終了時にイベントリスナーを削除
+      const cleanupTouchEvents = () => {
+        document.removeEventListener('touchmove', handleTouchMove as EventListener);
+        document.removeEventListener('touchend', cleanupTouchEvents);
+        document.removeEventListener('touchcancel', cleanupTouchEvents);
+      };
+      
+      // イベントリスナーを追加
+      document.addEventListener('touchmove', handleTouchMove as EventListener, { passive: true });
+      document.addEventListener('touchend', cleanupTouchEvents);
+      document.addEventListener('touchcancel', cleanupTouchEvents);
+    };
+    
+    // イベントリスナーの登録
+    const msgContainer = document.querySelector("#messages-container");
+    if (msgContainer) {
+      console.info('【デバッグ】スクロールイベントリスナーを設定しました（autoScroll値:', autoScroll, '）');
+      msgContainer.addEventListener("scroll", handleScroll);
+      msgContainer.addEventListener("wheel", handleWheel as EventListener);
+      msgContainer.addEventListener("touchstart", handleTouchStart as EventListener, { passive: true });
+      
+      // クリーンアップ関数（イベントリスナーの削除）
+      return () => {
+        console.info('【デバッグ】スクロールイベントリスナーを削除します');
+        msgContainer.removeEventListener("scroll", handleScroll);
+        msgContainer.removeEventListener("wheel", handleWheel as EventListener);
+        msgContainer.removeEventListener("touchstart", handleTouchStart as EventListener);
+      };
+    } else {
+      console.info('【デバッグ】メッセージコンテナが見つからないためスクロールイベントリスナーを設定できませんでした');
+      // コンテナが見つからない場合も空のクリーンアップ関数を返す
+      return () => {};
+    }
+  }, [autoScroll, isAutoScrollingRef]); // isAutoScrollingRefを依存配列に追加
 
   // useEffect() [userInput]
   useEffect(() => {
@@ -172,6 +253,8 @@ function Playground() {
     autoHight(userTextareaRef);
     autoHight(systemTextareaRef);
 
+    // ユーザー入力時は現在のautoScroll設定に関わらずスクロールする
+    // ユーザーが意図的に入力したので、常に最新の入力を表示する
     setTimeout(() => {
       const messagesContainer = document.querySelector("#messages-container");
       messagesContainer?.scrollTo(0, messagesContainer.scrollHeight);
@@ -223,7 +306,6 @@ function Playground() {
         activeChatId,
         richChats,
         setChats: updateChats,
-        scrollToBottom,
         createWebSocketConnection,
         temperature,
         penalties,
@@ -242,7 +324,6 @@ function Playground() {
                 activeChatId,
                 richChats,
                 setChats: updateChats,
-                scrollToBottom,
                 createWebSocketConnection,
                 temperature,
                 penalties,
@@ -361,3 +442,4 @@ function Playground() {
 }
 
 export default withAuthenticator(Playground);
+

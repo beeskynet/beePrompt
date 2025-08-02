@@ -21,9 +21,14 @@ import * as cognito from 'aws-cdk-lib/aws-cognito';
 import path = require('path');
 
 const userPoolId = process.env.USER_POOL_ID || '';
-const openaiApiKey = process.env.OPENAI_API_KEY || '';
-const anthropicApiKey = process.env.ANTHROPIC_API_KEY || '';
-const cohereApiKey = process.env.COHERE_API_KEY || '';
+const openaiApiKey =
+  process.env.OPENAI_API_KEY_BEEPROMPT || process.env.OPENAI_API_KEY || '';
+const anthropicApiKey =
+  process.env.ANTHROPIC_API_KEY_BEEPROMPT ||
+  process.env.ANTHROPIC_API_KEY ||
+  '';
+const cohereApiKey =
+  process.env.COHERE_API_KEY_BEEPROMPT || process.env.COHERE_API_KEY || '';
 
 export interface CustomizedProps extends StackProps {
   dbTableName: string; // 既存のDBを使う場合

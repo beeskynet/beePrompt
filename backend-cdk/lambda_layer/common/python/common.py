@@ -35,9 +35,13 @@ class Model(Enum):
     gpt4_1 = "gpt-4.1-2025-04-14"
     gpt4_1_mini = "gpt-4.1-mini-2025-04-14"
     gpt4_1_nano = "gpt-4.1-nano-2025-04-14"
+    gpt5 = "gpt-5-2025-08-07"
+    gpt5_mini = "gpt-5-mini-2025-08-07"
+    gpt5_nano = "gpt-5-nano-2025-08-07"
     gpt_o1_preview = "o1-preview-2024-09-12"
     gpt_o1= "o1-2024-12-17"
     gpt_o1_mini = "o1-mini-2024-09-12"
+    gpt_o3 = "o3-2025-04-16"
     gpt_o3_mini= "o3-mini-2025-01-31"
     # bedrock
     claude_v3_sonnet = "anthropic.claude-3-sonnet-20240229-v1:0"
@@ -49,6 +53,8 @@ class Model(Enum):
     claude_3_sonnet = "claude-3-sonnet-20240229"
     claude_3_5_sonnet = "claude-3-5-sonnet-20241022"
     claude_3_7_sonnet = "claude-3-7-sonnet-20250219"
+    claude_4_5_sonnet = "claude-sonnet-4-5"
+    claude_4_1_opus = "claude-opus-4-1"
     claude_3_haiku = "claude-3-haiku-20240307"
     claude_3_5_haiku = "claude-3-5-haiku-20241022"
     # cohere
@@ -69,12 +75,15 @@ PRICE = {
     Model.gpt4_1.value: {"in": 0.002, "out": 0.008},
     Model.gpt4_1_mini.value: {"in": 0.0004, "out": 0.0016},
     Model.gpt4_1_nano.value: {"in": 0.0001, "out": 0.0004},
-    Model.gpt4_1.value: {"in": 0.002, "out": 0.008},
+    Model.gpt5.value: {"in": 0.00125, "out": 0.01},
+    Model.gpt5_mini.value: {"in": 0.00025, "out": 0.002},
+    Model.gpt5_nano.value: {"in": 0.00005, "out": 0.0004},
     Model.gpt4o_mini.value: {"in": 0.00015, "out": 0.0006},
     Model.gpt4_5_preview.value: {"in": 0.075, "out": 0.15},
     Model.gpt_o1_preview.value: {"in": 0.015, "out": 0.060},
     Model.gpt_o1.value: {"in": 0.015, "out": 0.060},
     Model.gpt_o1_mini.value: {"in": 0.0011, "out": 0.0044},
+    Model.gpt_o3.value: {"in": 0.01, "out": 0.04},
     Model.gpt_o3_mini.value: {"in": 0.0011, "out": 0.0044},
     # claude #
     Model.claude_instant_v1.value: {"in": 0.00163, "out": 0.00551},
@@ -86,6 +95,8 @@ PRICE = {
     Model.claude_3_sonnet.value: {"in": 0.003, "out": 0.015},
     Model.claude_3_5_sonnet.value: {"in": 0.003, "out": 0.015},
     Model.claude_3_7_sonnet.value: {"in": 0.003, "out": 0.015},
+    Model.claude_4_5_sonnet.value: {"in": 0.003, "out": 0.015},
+    Model.claude_4_1_opus.value: {"in": 0.015, "out": 0.075},
     Model.claude_3_opus.value: {"in": 0.015, "out": 0.075},
     # command #
     Model.command_r_plus.value: {"in": 0.0, "out": 0.0},

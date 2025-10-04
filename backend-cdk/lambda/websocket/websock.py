@@ -270,16 +270,26 @@ def lambda_handler(event, _):
             # gpt
             filtered_msgs = filter_messages(in_msgs, model)
             client = init_openai()
-            stream = client.chat.completions.create(  # pyright: ignore[reportCallIssue]
-                model=model,
-                messages=filtered_msgs,  # pyright: ignore[reportArgumentType]
-                stream=True,
-                user=userid,
-                temperature=temperatureGpt,
-                top_p=topPGpt,
-                frequency_penalty=frequencyPenaltyGpt,
-                presence_penalty=presencePenaltyGpt,
-            )
+            
+            # gpt-4o-search-preview doesn't support certain parameters
+            if model == Model.gpt4o_search.value:
+                stream = client.chat.completions.create(  # pyright: ignore[reportCallIssue]
+                    model=model,
+                    messages=filtered_msgs,  # pyright: ignore[reportArgumentType]
+                    stream=True,
+                    user=userid,
+                )
+            else:
+                stream = client.chat.completions.create(  # pyright: ignore[reportCallIssue]
+                    model=model,
+                    messages=filtered_msgs,  # pyright: ignore[reportArgumentType]
+                    stream=True,
+                    user=userid,
+                    temperature=temperatureGpt,
+                    top_p=topPGpt,
+                    frequency_penalty=frequencyPenaltyGpt,
+                    presence_penalty=presencePenaltyGpt,
+                )
             for chunk in stream:
                 if chunk.choices[0].delta.content is not None:
                     content = chunk.choices[0].delta.content

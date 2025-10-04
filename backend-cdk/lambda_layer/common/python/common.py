@@ -30,6 +30,7 @@ class Model(Enum):
     gpt4turbo_preview = "gpt-4-0125-preview"
     gpt4turbo = "gpt-4-turbo-2024-04-09"
     gpt4o = "gpt-4o-2024-08-06"
+    gpt4o_search = "gpt-4o-search-preview"
     gpt4o_mini = "gpt-4o-mini"
     gpt4_5_preview = "gpt-4.5-preview-2025-02-27"
     gpt4_1 = "gpt-4.1-2025-04-14"
@@ -72,6 +73,7 @@ PRICE = {
     Model.gpt4turbo_preview.value: {"in": 0.01, "out": 0.03},
     Model.gpt4turbo.value: {"in": 0.01, "out": 0.03},
     Model.gpt4o.value: {"in": 0.0025, "out": 0.010},
+    Model.gpt4o_search.value: {"in": 0.0025, "out": 0.010},
     Model.gpt4_1.value: {"in": 0.002, "out": 0.008},
     Model.gpt4_1_mini.value: {"in": 0.0004, "out": 0.0016},
     Model.gpt4_1_nano.value: {"in": 0.0001, "out": 0.0004},

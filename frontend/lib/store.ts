@@ -10,6 +10,7 @@ export const modelsGens: { [key: string]: string } = {
   "gpt-4-turbo-2024-04-09": "gpt-4-turbo",
   "gpt-4o-2024-05-13": "gpt-4o",
   "gpt-4o-2024-08-06": "gpt-4o",
+  "gpt-4o-search-preview": "gpt-4o-search",
   "gpt-4.5-preview-2025-02-27": "gpt-4.5-preview",
   "o1-mini-2024-09-12": "gpt-o1-mini",
   "o3-mini-2025-01-31": "gpt-o3-mini",

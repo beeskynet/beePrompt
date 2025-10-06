@@ -104,6 +104,12 @@ PRICE = {
     Model.command_r_plus.value: {"in": 0.0, "out": 0.0},
 }
 
+# Web search pricing (per call)
+# $25/1000 calls = $0.025/call
+SEARCH_PRICE = {
+    Model.gpt4o_search.value: 0.025
+}
+
 
 def access_db_retry(func, prms):
     from botocore.exceptions import ClientError
@@ -196,15 +202,32 @@ def save_usage(userid, io_type, model, io_costs):
         "io_type": io_type,
         "model": model,
         "platform": "openai" if model.startswith("gpt") else "amazon",
-        "est_token": io_costs[f"{io_type}_token"],
-        "est_dollar": Decimal(io_costs[f"{io_type}_dollar"]),
-        "est_yen": Decimal(io_costs[f"{io_type}_yen"]),
-        "usage_point": Decimal(io_costs[f"{io_type}_usage_point"]),
-        "dollar_1token": Decimal("%.5f" % PRICE[model][io_type]),
-        "yen_1dollar": Decimal(yen_1dollar),
-        "point_1yen": Decimal(point_1yen),
         "createdAt": dtm[:19],  # yyyy-mm-dd hh:mm:ss
     }
+    
+    if io_type == "search":
+        # 検索料金の場合
+        item.update({
+            "search_count": io_costs["search_count"],
+            "search_dollar": Decimal(io_costs["search_dollar"]),
+            "search_yen": Decimal(io_costs["search_yen"]),
+            "search_usage_point": Decimal(io_costs["search_usage_point"]),
+            "dollar_1search": Decimal("%.5f" % SEARCH_PRICE[model]),
+            "yen_1dollar": Decimal(yen_1dollar),
+            "point_1yen": Decimal(point_1yen),
+        })
+    else:
+        # 通常のトークン料金の場合
+        item.update({
+            "est_token": io_costs[f"{io_type}_token"],
+            "est_dollar": Decimal(io_costs[f"{io_type}_dollar"]),
+            "est_yen": Decimal(io_costs[f"{io_type}_yen"]),
+            "usage_point": Decimal(io_costs[f"{io_type}_usage_point"]),
+            "dollar_1token": Decimal("%.5f" % PRICE[model][io_type]),
+            "yen_1dollar": Decimal(yen_1dollar),
+            "point_1yen": Decimal(point_1yen),
+        })
+    
     dynamodb = boto3.resource("dynamodb")
     table = dynamodb.Table(table_name)
     table.put_item(

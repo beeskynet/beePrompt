@@ -15,6 +15,41 @@
 ユーザー別のポイント使用量の集計等に使用  
 common.save_usage()
 
+**現行仕様（io_type: "in" / "out"）:**
+- pk: usage#{userid}
+- sk: 作成日時(yyyy-mm-dd hh:mm:ss.sssss)
+- dtype: "usage"
+- io_type: "in" または "out"
+- model: 使用モデル名
+- platform: "openai" または "amazon"
+- est_token: 推定トークン数
+- est_dollar: 推定ドル金額
+- est_yen: 推定円金額
+- usage_point: 使用ポイント
+- dollar_1token: 1トークンあたりのドル価格
+- yen_1dollar: 1ドルあたりの円価格
+- point_1yen: 1円あたりのポイント
+- createdAt: 作成日時(yyyy-mm-dd hh:mm:ss)
+
+**更新仕様（io_type: "search"を追加）:**
+Web検索機能を持つモデル（gpt-4o-search-preview等）使用時は、トークン料金とは別に検索料金レコードを作成
+- pk: usage#{userid}
+- sk: 作成日時(yyyy-mm-dd hh:mm:ss.sssss)
+- dtype: "usage"
+- io_type: "search"
+- model: 使用モデル名
+- platform: "openai"
+- search_count: 検索回数（通常1）
+- search_dollar: 検索ドル金額
+- search_yen: 検索円金額
+- search_usage_point: 検索使用ポイント
+- dollar_1search: 1検索あたりのドル価格
+- yen_1dollar: 1ドルあたりの円価格
+- point_1yen: 1円あたりのポイント
+- createdAt: 作成日時(yyyy-mm-dd hh:mm:ss)
+
+※検索使用時は1回のAPI呼び出しで最大3レコード（in, out, search）が作成される
+
 #### ポイント残高(pt)
 生成AI API使用ごとにポイント消費  
 

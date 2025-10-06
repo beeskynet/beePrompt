@@ -20,6 +20,7 @@ from common import (
     check_enough_points,
     Model,
     PRICE,
+    SEARCH_PRICE,
     validate_token,
 )
 from typing import List, Dict
@@ -152,6 +153,25 @@ def lambda_handler(event, _):
             f"{io_type}_yen": 0,
             f"{io_type}_usage_point": 0,
         }
+    
+    def est_search_cost(model):
+        """検索コストを計算（呼び出しあたりの固定料金）"""
+        if model in SEARCH_PRICE:
+            search_dollar = SEARCH_PRICE[model]
+            search_yen = search_dollar * float(yen_1dollar)
+            search_usage_point = search_yen * float(point_1yen)
+            return {
+                "search_count": 1,
+                "search_dollar": "%.5f" % search_dollar,
+                "search_yen": "%.3f" % search_yen,
+                "search_usage_point": "%.3f" % search_usage_point,
+            }
+        return {
+            "search_count": 0,
+            "search_dollar": "0",
+            "search_yen": "0",
+            "search_usage_point": "0",
+        }
 
     domain_name = event.get("requestContext", {}).get("domainName")
     stage = event.get("requestContext", {}).get("stage")
@@ -250,7 +270,13 @@ def lambda_handler(event, _):
         # ポイントチェック
         if not is_command(model):
             pre_in_costs = est_gpt_cost("in", in_msgs, model)
-            res_vali = check_enough_points(userid, pre_in_costs["in_usage_point"])
+            if model == Model.gpt4o_search.value:
+                search_costs = est_search_cost(model)
+                total_pre_in_usage_point = float(pre_in_costs["in_usage_point"]) + float(search_costs["search_usage_point"])
+                res_vali = check_enough_points(userid, str(total_pre_in_usage_point))
+            else:
+                res_vali = check_enough_points(userid, pre_in_costs["in_usage_point"])
+            
             if not res_vali["success"]:
                 apigw_management.post_to_connection(
                     ConnectionId=connectionId,
@@ -335,12 +361,20 @@ def lambda_handler(event, _):
                         output_tokens = event.usage.output_tokens
                 # メッセージ終了
                 input_tokens = stream.get_final_message().usage.input_tokens
+        
+        # 検索コスト計算
+        if model == Model.gpt4o_search.value:
+            search_costs = est_search_cost(model)
+        else:
+            search_costs = {"search_count": 0, "search_dollar": "0", "search_yen": "0", "search_usage_point": "0"}
+        
         # 入力利用量登録
         if not is_command(model):
             in_costs = pre_in_costs if is_gpt(model) else est_cost_claude("in", input_tokens, model)
         if is_command(model):
             in_costs = est_cohere_cost("in")
         access_db_retry(save_usage, {"userid": userid, "io_type": "in", "model": model, "io_costs": in_costs})
+        
         # 出力利用量登録
         if not is_command(model):
             out_costs = (
@@ -350,28 +384,49 @@ def lambda_handler(event, _):
             )
         if is_command(model):
             out_costs = est_cohere_cost("out")
-
         access_db_retry(save_usage, {"userid": userid, "io_type": "out", "model": model, "io_costs": out_costs})
+        
+        # 検索利用量登録（検索料金を別レコードとして記録）
+        if model == Model.gpt4o_search.value and search_costs["search_count"] > 0:
+            access_db_retry(save_usage, {"userid": userid, "io_type": "search", "model": model, "io_costs": search_costs})
 
         # ポイント使用
-        total_usage_point = float(in_costs["in_usage_point"]) + float(out_costs["out_usage_point"])
+        search_point = float(search_costs["search_usage_point"]) if model == Model.gpt4o_search.value else 0
+        total_usage_point = float(in_costs["in_usage_point"]) + float(out_costs["out_usage_point"]) + search_point
         access_db_retry(use_points, {"userid": userid, "points_to_use": total_usage_point})
         # クライアントにメッセージ終了通知
+        response_data = {
+            "done": "message is ended.",
+            "chatid": chatid,
+            "model": model,
+            "dtm": dtm,
+            "userDtm": userDtm,
+            **in_costs,
+            **out_costs,
+        }
+        
+        # 検索コスト情報を追加
+        if model == Model.gpt4o_search.value:
+            response_data.update({
+                "search_count": search_costs["search_count"],
+                "search_dollar": search_costs["search_dollar"],
+                "search_yen": search_costs["search_yen"],
+                "search_usage_point": search_costs["search_usage_point"],
+            })
+        
+        # 合計金額の計算
+        total_yen = float(in_costs["in_yen"]) + float(out_costs["out_yen"])
+        if model == Model.gpt4o_search.value:
+            total_yen += float(search_costs["search_yen"])
+        
+        response_data.update({
+            "total_yen": "%.3f" % total_yen,
+            "total_usage_point": "%.3f" % total_usage_point,
+        })
+        
         apigw_management.post_to_connection(
             ConnectionId=connectionId,
-            Data=json.dumps(
-                {
-                    "done": "message is ended.",
-                    "chatid": chatid,
-                    "model": model,
-                    "dtm": dtm,
-                    "userDtm": userDtm,
-                    **in_costs,
-                    **out_costs,
-                    "total_yen": "%.3f" % (float(in_costs["in_yen"]) + float(out_costs["out_yen"])),
-                    "total_usage_point": "%.3f" % total_usage_point,
-                }
-            ),
+            Data=json.dumps(response_data),
         )
         return {"statusCode": 200}
     except InputError as e:

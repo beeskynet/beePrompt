@@ -7,6 +7,8 @@ import {
   aws_appsync,
   CfnOutput,
   RemovalPolicy,
+  aws_events,
+  aws_events_targets,
 } from 'aws-cdk-lib';
 import * as apigateway from 'aws-cdk-lib/aws-apigatewayv2';
 import { WebSocketApi, WebSocketStage } from '@aws-cdk/aws-apigatewayv2-alpha';
@@ -402,6 +404,49 @@ export class CdkChatgptCloneStackAP extends Stack {
           exportName: `${props.stackName}-${apiName}-WebSocketURL`,
         });
       }
+    });
+
+    //----------------------------EventBridge Rule for Monthly Point Allocation-----------------------------
+    // Lambda関数の作成
+    const scheduledPointAllocationLambda = new Function(this, 'scheduled-point-allocation', {
+      functionName: `${props.stackName}-scheduled-point-allocation`,
+      runtime: Runtime.PYTHON_3_11,
+      code: Code.fromAsset('lambda/scheduler'),
+      handler: 'scheduled-point-allocation.lambda_handler',
+      timeout: Duration.minutes(5),
+      layers: [pytzjwtLayer, commonLayer],
+      environment: {
+        TABLE_NAME: props.dbTableName || table.tableName,
+        DB_TABLE_NAME: props.dbTableName || table.tableName,
+        USER_POOL_ID: userPoolId,
+        PROJECT_NAME: props.stackName,
+      },
+      role: dynamodbFullAccessRole,
+    });
+
+    // EventBridge Rule - 毎月1日午前0時（JST）に実行
+    const monthlyPointAllocationRule = new aws_events.Rule(this, 'monthly-point-allocation-rule', {
+      ruleName: `${props.stackName}-monthly-point-allocation`,
+      description: 'Trigger monthly point allocation on the 1st day of each month at 00:00 JST',
+      // cron(分 時 日 月 曜日 年) - UTC時間で指定（JST-9時間）
+      // 毎月1日の午前0時JST = 前月末日の15:00 UTC
+      schedule: aws_events.Schedule.cron({
+        minute: '0',
+        hour: '15',
+        day: 'L', // 月末日
+        month: '*',
+        year: '*',
+      }),
+    });
+
+    // Lambda関数をターゲットに追加
+    monthlyPointAllocationRule.addTarget(
+      new aws_events_targets.LambdaFunction(scheduledPointAllocationLambda)
+    );
+
+    new CfnOutput(this, 'ScheduledPointAllocationLambdaArn', {
+      value: scheduledPointAllocationLambda.functionArn,
+      exportName: `${props.stackName}-scheduled-point-allocation-arn`,
     });
   }
 }

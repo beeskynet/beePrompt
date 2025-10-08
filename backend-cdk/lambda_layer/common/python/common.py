@@ -393,7 +393,16 @@ def use_points(userid, points_to_use):
     client.transact_write_items(TransactItems=TransactItems)
 
 
-def add_points(userid, points_to_add, effective_days):
+def add_points(userid, points_to_add, effective_days, effective_minutes=None):
+    """
+    ポイントを付与する
+    
+    Args:
+        userid: ユーザーID
+        points_to_add: 付与するポイント数
+        effective_days: 有効期限日数
+        effective_minutes: 有効期限分数（指定時はeffective_daysを無視）
+    """
     if points_to_add < 0:
         raise Exception("add_point()のpoints_to_addはマイナス値不可:points_to_add=%f" % points_to_add)
 
@@ -491,7 +500,12 @@ def add_points(userid, points_to_add, effective_days):
     if points_to_add > 0:
         # ポイント付与
         now = datetime.now(timezone("Asia/Tokyo"))
-        expiryDate = str(now + timedelta(days=effective_days))[:25]  # 有効期限(yyyy-mm-dd hh:mm:ss.sssss)
+        if effective_minutes is not None:
+            # 分単位で有効期限を設定
+            expiryDate = str(now + timedelta(minutes=effective_minutes))[:25]
+        else:
+            # 日単位で有効期限を設定
+            expiryDate = str(now + timedelta(days=effective_days))[:25]  # 有効期限(yyyy-mm-dd hh:mm:ss.sssss)
         # 残高付与登録
         TransactItems.append(
             {

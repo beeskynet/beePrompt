@@ -58,6 +58,7 @@ class Model(Enum):
     claude_4_1_opus = "claude-opus-4-1"
     claude_3_haiku = "claude-3-haiku-20240307"
     claude_3_5_haiku = "claude-3-5-haiku-20241022"
+    claude_4_5_haiku = "claude-haiku-4-5"
     # cohere
     command_r_plus = "command-r-plus"
 
@@ -94,6 +95,7 @@ PRICE = {
     Model.claude_v3_sonnet.value: {"in": 0.003, "out": 0.015},
     Model.claude_3_haiku.value: {"in": 0.00025, "out": 0.00125},
     Model.claude_3_5_haiku.value: {"in": 0.001, "out": 0.005},
+    Model.claude_4_5_haiku.value: {"in": 0.001, "out": 0.005},
     Model.claude_3_sonnet.value: {"in": 0.003, "out": 0.015},
     Model.claude_3_5_sonnet.value: {"in": 0.003, "out": 0.015},
     Model.claude_3_7_sonnet.value: {"in": 0.003, "out": 0.015},

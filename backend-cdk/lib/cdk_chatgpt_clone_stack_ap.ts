@@ -7,8 +7,7 @@ import {
   aws_appsync,
   CfnOutput,
   RemovalPolicy,
-  aws_events,
-  aws_events_targets,
+  aws_scheduler,
 } from 'aws-cdk-lib';
 import * as apigateway from 'aws-cdk-lib/aws-apigatewayv2';
 import { WebSocketApi, WebSocketStage } from '@aws-cdk/aws-apigatewayv2-alpha';
@@ -424,25 +423,29 @@ export class CdkChatgptCloneStackAP extends Stack {
       role: dynamodbFullAccessRole,
     });
 
-    // EventBridge Rule - 毎月1日午前0時（JST）に実行
-    const monthlyPointAllocationRule = new aws_events.Rule(this, 'monthly-point-allocation-rule', {
-      ruleName: `${props.stackName}-monthly-point-allocation`,
-      description: 'Trigger monthly point allocation on the 1st day of each month at 00:00 JST',
-      // cron(分 時 日 月 曜日 年) - UTC時間で指定（JST-9時間）
-      // 毎月1日の午前0時JST = 前月末日の15:00 UTC
-      schedule: aws_events.Schedule.cron({
-        minute: '0',
-        hour: '15',
-        day: 'L', // 月末日
-        month: '*',
-        year: '*',
-      }),
+    // EventBridge Scheduler用IAMロール
+    const schedulerRole = new aws_iam.Role(this, 'point-allocation-scheduler-role', {
+      assumedBy: new aws_iam.ServicePrincipal('scheduler.amazonaws.com'),
     });
+    schedulerRole.addToPolicy(new aws_iam.PolicyStatement({
+      actions: ['lambda:InvokeFunction'],
+      resources: [scheduledPointAllocationLambda.functionArn],
+    }));
 
-    // Lambda関数をターゲットに追加
-    monthlyPointAllocationRule.addTarget(
-      new aws_events_targets.LambdaFunction(scheduledPointAllocationLambda)
-    );
+    // EventBridge Scheduler - テスト用: 毎日0:00 JST に実行
+    new aws_scheduler.CfnSchedule(this, 'monthly-point-allocation-schedule', {
+      name: `${props.stackName}-monthly-point-allocation`,
+      description: 'Trigger point allocation daily at 00:00 JST (for testing)',
+      scheduleExpressionTimezone: 'Asia/Tokyo',
+      scheduleExpression: 'cron(0 0 * * ? *)', // 毎日 0:00 JST
+      // TODO: テスト完了後、毎月1日実行に変更する
+      // scheduleExpression: 'cron(0 0 1 * ? *)', // 毎月1日 0:00 JST
+      flexibleTimeWindow: { mode: 'OFF' },
+      target: {
+        arn: scheduledPointAllocationLambda.functionArn,
+        roleArn: schedulerRole.roleArn,
+      },
+    });
 
     new CfnOutput(this, 'ScheduledPointAllocationLambdaArn', {
       value: scheduledPointAllocationLambda.functionArn,

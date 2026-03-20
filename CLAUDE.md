@@ -100,10 +100,10 @@ beePrompt/
 4. **Lambda Layers**: Run Docker commands to build Python packages before deployment
 5. **WebSocket Endpoint**: US-East-1 region required for Bedrock integration
 
-## AI Output Convention
-コードに直接反映しない設計、検討、調査結果やQA回答場合は、`ai-work/yyyMMdd-HHmm_<タイトル>.md`形式でファイルを作成して保存してください。
-yyyyMMdd-HHmmは新規作成時の日時です。(date '+%Y%m%d-%H%M')コマンドで取得してください。
+## IMPORTANT: Language Convention (ALWAYS APPLY)
+**On EVERY response where the user's input is in Japanese:**
+1. First, translate the Japanese question into English and display it
+2. Then answer entirely in English
+3. Plans must also be in English
 
-## Language Convention
-When a question is asked in Japanese, first translate the question into English and display it, then answer entirely in English.
-
+This rule applies to ALL turns, not just the first one.

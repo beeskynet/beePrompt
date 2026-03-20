@@ -39,6 +39,9 @@ class Model(Enum):
     gpt5 = "gpt-5-2025-08-07"
     gpt5_mini = "gpt-5-mini-2025-08-07"
     gpt5_nano = "gpt-5-nano-2025-08-07"
+    gpt5_4 = "gpt-5.4"
+    gpt5_4_mini = "gpt-5.4-mini"
+    gpt5_4_nano = "gpt-5.4-nano"
     gpt_o1_preview = "o1-preview-2024-09-12"
     gpt_o1= "o1-2024-12-17"
     gpt_o1_mini = "o1-mini-2024-09-12"
@@ -56,6 +59,8 @@ class Model(Enum):
     claude_3_7_sonnet = "claude-3-7-sonnet-20250219"
     claude_4_5_sonnet = "claude-sonnet-4-5"
     claude_4_1_opus = "claude-opus-4-1"
+    claude_4_6_sonnet = "claude-sonnet-4-6"
+    claude_4_6_opus = "claude-opus-4-6"
     claude_3_haiku = "claude-3-haiku-20240307"
     claude_3_5_haiku = "claude-3-5-haiku-20241022"
     claude_4_5_haiku = "claude-haiku-4-5"
@@ -81,6 +86,9 @@ PRICE = {
     Model.gpt5.value: {"in": 0.00125, "out": 0.01},
     Model.gpt5_mini.value: {"in": 0.00025, "out": 0.002},
     Model.gpt5_nano.value: {"in": 0.00005, "out": 0.0004},
+    Model.gpt5_4.value: {"in": 0.0025, "out": 0.015},
+    Model.gpt5_4_mini.value: {"in": 0.00075, "out": 0.0045},
+    Model.gpt5_4_nano.value: {"in": 0.0002, "out": 0.00125},
     Model.gpt4o_mini.value: {"in": 0.00015, "out": 0.0006},
     Model.gpt4_5_preview.value: {"in": 0.075, "out": 0.15},
     Model.gpt_o1_preview.value: {"in": 0.015, "out": 0.060},
@@ -101,6 +109,8 @@ PRICE = {
     Model.claude_3_7_sonnet.value: {"in": 0.003, "out": 0.015},
     Model.claude_4_5_sonnet.value: {"in": 0.003, "out": 0.015},
     Model.claude_4_1_opus.value: {"in": 0.015, "out": 0.075},
+    Model.claude_4_6_sonnet.value: {"in": 0.003, "out": 0.015},
+    Model.claude_4_6_opus.value: {"in": 0.005, "out": 0.025},
     Model.claude_3_opus.value: {"in": 0.015, "out": 0.075},
     # command #
     Model.command_r_plus.value: {"in": 0.0, "out": 0.0},

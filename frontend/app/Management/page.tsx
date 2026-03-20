@@ -77,6 +77,12 @@ function ManBalance() {
   const checkUser = (user: User) => () => {
     setChecked({ ...checked, [user.sub]: !checked[user.sub] });
   };
+  const allChecked = users.length > 0 && users.every((user) => checked[user.sub]);
+  const toggleAll = () => {
+    const next: Dict<boolean> = {};
+    users.forEach((user) => (next[user.sub] = !allChecked));
+    setChecked(next);
+  };
   const onChangePointInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const str = e.target.value.replace(/(?!^-)[^0-9]/g, ""); // 文頭のマイナスは許す
     const num = parseInt(str);
@@ -183,11 +189,10 @@ function ManBalance() {
         {/* ヘッダー */}
         <div className="" style={{ width: 480 }}>
           <div className="grid" style={{ gridTemplateColumns: "2fr 0.7fr" }}>
-            {columns.map((col, i) => (
-              <div key={`h-${i}`} className={`bg-gray-200 p-2 border`}>
-                {capitalize(col)}
-              </div>
-            ))}
+            <div className="bg-gray-200 border">
+              <Checkbox color="indigo" id="select-all" label="Username" checked={allChecked} onChange={toggleAll} />
+            </div>
+            <div className="bg-gray-200 p-2 border">Balance</div>
           </div>
         </div>
 

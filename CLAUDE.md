@@ -102,5 +102,8 @@ beePrompt/
 
 ## AI Output Convention
 コードに直接反映しない設計、検討、調査結果やQA回答場合は、`ai-work/yyyMMdd-HHmm_<タイトル>.md`形式でファイルを作成して保存してください。
-yyyyMMdd-HHmmは新規作成時の日時です。(date '+%Y%m%d-%H%M')コマンドで取得してください。  
+yyyyMMdd-HHmmは新規作成時の日時です。(date '+%Y%m%d-%H%M')コマンドで取得してください。
+
+## Language Convention
+When a question is asked in Japanese, first translate the question into English and display it, then answer entirely in English.
 

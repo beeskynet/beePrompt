@@ -118,6 +118,31 @@ def add_points_to_user(userid, points, effective_days, effective_minutes=None):
         print(error_msg)
         return False, error_msg
 
+def is_already_allocated(userid):
+    """当月すでにポイントが配布済みかチェック（冪等性制御）"""
+    try:
+        now = datetime.now(timezone("Asia/Tokyo"))
+        year_month = now.strftime('%Y-%m')
+        response = table.query(
+            KeyConditionExpression='pk = :pk AND begins_with(sk, :sk_prefix)',
+            ExpressionAttributeValues={
+                ':pk': f'pt-alloc-hist#{year_month}',
+                ':sk_prefix': f'{userid}#'
+            },
+            Limit=1
+        )
+        items = response.get('Items', [])
+        # errorMessageがないレコード（成功した配布）が存在すれば配布済み
+        for item in items:
+            if 'errorMessage' not in item:
+                return True
+        return False
+    except Exception as e:
+        print(f"Error checking allocation status for {userid}: {e}")
+        # チェックに失敗した場合は安全側に倒して配布済みとみなす
+        return True
+
+
 def record_allocation_history(userid, points, expiration_date, error_msg=None):
     """ポイント配布履歴を記録"""
     try:
@@ -191,7 +216,13 @@ def lambda_handler(event, context):
                 skip_count += 1
                 record_allocation_history(userid, 0, f"{effective_days} days")
                 continue
-            
+
+            # 冪等性チェック: 当月すでに配布済みならスキップ
+            if is_already_allocated(userid):
+                print(f"Skip user {username} (userid: {userid}) - already allocated this month")
+                skip_count += 1
+                continue
+
             # ポイント付与
             success, error_msg = add_points_to_user(userid, points_to_allocate, effective_days, custom_minutes)
             

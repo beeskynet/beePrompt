@@ -432,13 +432,12 @@ export class CdkChatgptCloneStackAP extends Stack {
       resources: [scheduledPointAllocationLambda.functionArn],
     }));
 
-    // EventBridge Scheduler - テスト用: 毎日0:00 JST に実行
-    // TODO: テスト完了後、毎月1日実行に変更する scheduleExpression: 'cron(0 0 1 * ? *)'
+    // EventBridge Scheduler - 毎月1日 0:00 JST に実行
     new aws_scheduler.CfnSchedule(this, 'monthly-point-allocation-schedule', {
       name: `${props.stackName}-monthly-point-allocation`,
-      description: 'Trigger point allocation daily at 00:00 JST (for testing)',
+      description: 'Trigger monthly point allocation at 00:00 JST on the 1st',
       scheduleExpressionTimezone: 'Asia/Tokyo',
-      scheduleExpression: 'cron(0 0 * * ? *)', // 毎日 0:00 JST（テスト用）
+      scheduleExpression: 'cron(0 0 1 * ? *)', // 毎月1日 0:00 JST
       flexibleTimeWindow: { mode: 'OFF' },
       target: {
         arn: scheduledPointAllocationLambda.functionArn,

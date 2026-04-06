@@ -71,6 +71,7 @@ class Model(Enum):
 # https://openai.com/pricing
 # https://aws.amazon.com/bedrock/pricing/
 # $x.xx/1K tokens
+# NOTE: When adding new models, also update backend-cdk/lambda/websocket-go/cost.go
 PRICE = {
     # gpt #
     Model.gpt35turbo.value: {"in": 0.0005, "out": 0.0015},

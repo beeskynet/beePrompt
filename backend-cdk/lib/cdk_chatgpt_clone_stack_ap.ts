@@ -12,7 +12,7 @@ import {
 import * as apigateway from 'aws-cdk-lib/aws-apigatewayv2';
 import { WebSocketApi, WebSocketStage } from '@aws-cdk/aws-apigatewayv2-alpha';
 import { WebSocketLambdaIntegration } from '@aws-cdk/aws-apigatewayv2-integrations-alpha';
-import { Runtime, LayerVersion, Function, Code } from 'aws-cdk-lib/aws-lambda';
+import { Runtime, LayerVersion, Function, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
 import { ManagedPolicy } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import * as dotenv from 'dotenv';
@@ -403,6 +403,56 @@ export class CdkChatgptCloneStackAP extends Stack {
           exportName: `${props.stackName}-${apiName}-WebSocketURL`,
         });
       }
+    });
+
+    //===================================== Go WebSocket Lambda (side-by-side) =====================================
+    const goWebsockLambda = new Function(this, 'websock-go-Lambda', {
+      functionName: `${props.stackName}-websock-go`,
+      runtime: Runtime.PROVIDED_AL2023,
+      architecture: Architecture.ARM_64,
+      code: Code.fromAsset('lambda/websocket-go', {
+        bundling: {
+          image: Runtime.PROVIDED_AL2023.bundlingImage,
+          command: [
+            'bash', '-c', [
+              'export GOCACHE=/tmp/go-cache',
+              'export GOPATH=/tmp/go-path',
+              'GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -tags lambda.norpc -o /asset-output/bootstrap .',
+            ].join(' && '),
+          ],
+        },
+      }),
+      handler: 'bootstrap',
+      environment,
+      timeout: Duration.seconds(900),
+      role: MainLamdaRole,
+      memorySize: 2048,
+    });
+    table.grantReadWriteData(goWebsockLambda);
+
+    const goApiName = 'websocket-api-go';
+    const goWebSocketApi = new WebSocketApi(this, goApiName, {
+      apiName: `${props.stackName}-${goApiName}`,
+    });
+    const goRoute = goWebSocketApi.addRoute('$default', {
+      integration: new WebSocketLambdaIntegration(
+        'goDefaultIntegration',
+        goWebsockLambda
+      ),
+    });
+    new apigateway.CfnRouteResponse(this, 'websock-go-response', {
+      apiId: goWebSocketApi.apiId,
+      routeId: goRoute.routeId,
+      routeResponseKey: '$default',
+    });
+    const goStage = new WebSocketStage(this, 'goApiStage', {
+      webSocketApi: goWebSocketApi,
+      stageName: 'dev',
+      autoDeploy: true,
+    });
+    new CfnOutput(this, 'GoWebSocketURL', {
+      value: goStage.url,
+      exportName: `${props.stackName}-${goApiName}-WebSocketURL`,
     });
 
     //----------------------------EventBridge Rule for Monthly Point Allocation-----------------------------

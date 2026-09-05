@@ -21,6 +21,7 @@ from common import (
     Model,
     PRICE,
     SEARCH_PRICE,
+    CLAUDE_5_MODELS,
     validate_token,
 )
 from typing import List, Dict
@@ -36,6 +37,8 @@ API_KEY_ENV_NAME = {
 }
 
 CLAUDE_MAX_OUTPUT_TOKENS = 4096  # 2024/4/1現在、全モデルの最大値= 4096
+# Claude 5世代はthinkingが既定でONで、thinkingトークンもmax_tokensを消費するため多めに確保する
+CLAUDE_5_MAX_OUTPUT_TOKENS = 16384
 """
 https://docs.anthropic.com/claude/reference/messages_post
 https://docs.anthropic.com/claude/docs/models-overview
@@ -45,6 +48,13 @@ https://docs.anthropic.com/claude/docs/models-overview
 def location(depth=1):
     frame = inspect.stack()[depth]
     return str((os.path.basename(frame.filename), frame.function, frame.lineno))
+
+
+def attr_or_key(obj, key):
+    """SDKが型を知らないブロックはdictのまま渡ってくるので、両方の形で読めるようにする"""
+    if isinstance(obj, dict):
+        return obj.get(key)
+    return getattr(obj, key, None)
 
 
 class InputError(Exception):
@@ -342,25 +352,43 @@ def lambda_handler(event, _):
         else:
             # claude
             client = init_anthropic()
-            with client.messages.stream(
-                max_tokens=CLAUDE_MAX_OUTPUT_TOKENS,
+            # Claude 5世代以降はtemperature等を送ると400になるため付けない
+            # またthinkingが既定でONなのでmax_tokensを大きめに取る(thinking分も消費するため)
+            claude_options = {}
+            if model in CLAUDE_5_MODELS:
+                max_output_tokens = CLAUDE_5_MAX_OUTPUT_TOKENS
+            else:
+                max_output_tokens = CLAUDE_MAX_OUTPUT_TOKENS
+                claude_options["temperature"] = temperatureClaude
+            # レイヤーのSDK(anthropic 0.21.3)はthinking系のブロックを知らないため
+            # messages.stream()のヘルパーは累積処理で落ちる。生のstreamイベントを直接扱い、
+            # SDKが解釈できずdictのまま渡してくるブロックはattr_or_key()で読む
+            stream = client.messages.create(
+                max_tokens=max_output_tokens,
                 messages=in_msgs,  # pyright: ignore[reportArgumentType]
                 model=model,
-                temperature=temperatureClaude,
                 metadata={"user_id": userid},
+                stream=True,
                 # top_k=topKClaude,
                 # top_p=topPClaude,
-            ) as stream:
-                for event in stream:
-                    if event.type == "content_block_delta":
+                **claude_options,
+            )
+            for event in stream:
+                event_type = attr_or_key(event, "type")
+                if event_type == "message_start":
+                    input_tokens = event.message.usage.input_tokens
+                # thinkingが有効なモデルではthinking_delta/signature_deltaも流れてくるのでtextのみ拾う
+                if event_type == "content_block_delta":
+                    delta = attr_or_key(event, "delta")
+                    if attr_or_key(delta, "type") == "text_delta":
                         apigw_management.post_to_connection(
                             ConnectionId=connectionId,
-                            Data=json.dumps({"content": event.delta.text, "chatid": chatid, "dtm": dtm}),
+                            Data=json.dumps(
+                                {"content": attr_or_key(delta, "text"), "chatid": chatid, "dtm": dtm}
+                            ),
                         )
-                    if event.type == "message_delta":
-                        output_tokens = event.usage.output_tokens
-                # メッセージ終了
-                input_tokens = stream.get_final_message().usage.input_tokens
+                if event_type == "message_delta":
+                    output_tokens = event.usage.output_tokens
         
         # 検索コスト計算
         if model == Model.gpt4o_search.value:

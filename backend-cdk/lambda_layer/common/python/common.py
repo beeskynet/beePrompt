@@ -42,6 +42,9 @@ class Model(Enum):
     gpt5_4 = "gpt-5.4"
     gpt5_4_mini = "gpt-5.4-mini"
     gpt5_4_nano = "gpt-5.4-nano"
+    gpt5_6_sol = "gpt-5.6-sol"
+    gpt5_6_terra = "gpt-5.6-terra"
+    gpt5_6_luna = "gpt-5.6-luna"
     gpt_o1_preview = "o1-preview-2024-09-12"
     gpt_o1= "o1-2024-12-17"
     gpt_o1_mini = "o1-mini-2024-09-12"
@@ -61,6 +64,9 @@ class Model(Enum):
     claude_4_1_opus = "claude-opus-4-1"
     claude_4_6_sonnet = "claude-sonnet-4-6"
     claude_4_6_opus = "claude-opus-4-6"
+    claude_5_sonnet = "claude-sonnet-5"
+    claude_5_opus = "claude-opus-5"
+    claude_5_1_fable = "claude-fable-5-1"
     claude_3_haiku = "claude-3-haiku-20240307"
     claude_3_5_haiku = "claude-3-5-haiku-20241022"
     claude_4_5_haiku = "claude-haiku-4-5"
@@ -89,6 +95,9 @@ PRICE = {
     Model.gpt5_4.value: {"in": 0.0025, "out": 0.015},
     Model.gpt5_4_mini.value: {"in": 0.00075, "out": 0.0045},
     Model.gpt5_4_nano.value: {"in": 0.0002, "out": 0.00125},
+    Model.gpt5_6_sol.value: {"in": 0.005, "out": 0.03},
+    Model.gpt5_6_terra.value: {"in": 0.002, "out": 0.012},
+    Model.gpt5_6_luna.value: {"in": 0.0002, "out": 0.0012},
     Model.gpt4o_mini.value: {"in": 0.00015, "out": 0.0006},
     Model.gpt4_5_preview.value: {"in": 0.075, "out": 0.15},
     Model.gpt_o1_preview.value: {"in": 0.015, "out": 0.060},
@@ -111,9 +120,20 @@ PRICE = {
     Model.claude_4_1_opus.value: {"in": 0.015, "out": 0.075},
     Model.claude_4_6_sonnet.value: {"in": 0.003, "out": 0.015},
     Model.claude_4_6_opus.value: {"in": 0.005, "out": 0.025},
+    Model.claude_5_sonnet.value: {"in": 0.002, "out": 0.010},
+    Model.claude_5_opus.value: {"in": 0.005, "out": 0.025},
+    Model.claude_5_1_fable.value: {"in": 0.010, "out": 0.050},
     Model.claude_3_opus.value: {"in": 0.015, "out": 0.075},
     # command #
     Model.command_r_plus.value: {"in": 0.0, "out": 0.0},
+}
+
+# Claude 5世代以降はsampling系パラメータ(temperature/top_p/top_k)が廃止されており、
+# 送るとAPIが400を返す。またthinkingが既定でONになる。
+CLAUDE_5_MODELS = {
+    Model.claude_5_sonnet.value,
+    Model.claude_5_opus.value,
+    Model.claude_5_1_fable.value,
 }
 
 # Web search pricing (per call)

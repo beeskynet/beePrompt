@@ -22,6 +22,9 @@ export const modelsGens: { [key: string]: string } = {
   "gpt-5.4": "gpt-5.4",
   "gpt-5.4-mini": "gpt-5.4-mini",
   "gpt-5.4-nano": "gpt-5.4-nano",
+  "gpt-5.6-sol": "gpt-5.6-sol",
+  "gpt-5.6-terra": "gpt-5.6-terra",
+  "gpt-5.6-luna": "gpt-5.6-luna",
   "o1-preview-2024-09-12": "gpt-o1-preview",
   "o1-2024-12-17": "gpt-o1",
   "o3-2025-04-16": "gpt-o3",
@@ -41,6 +44,9 @@ export const modelsGens: { [key: string]: string } = {
   "claude-opus-4-1": "claude-4.1-opus",
   "claude-sonnet-4-6": "claude-4.6-sonnet",
   "claude-opus-4-6": "claude-4.6-opus",
+  "claude-sonnet-5": "claude-5-sonnet",
+  "claude-opus-5": "claude-5-opus",
+  "claude-fable-5-1": "claude-5.1-fable",
   "claude-3-opus-20240229": "claude-3-opus",
   "command-r-plus": "command-R+",
 };
@@ -96,6 +102,12 @@ const modelsToDelete = [
   "gpt-5-2025-08-07",
   "gpt-5-mini-2025-08-07",
   "gpt-5-nano-2025-08-07",
+  "gpt-5.4",
+  "gpt-5.4-mini",
+  "gpt-5.4-nano",
+  "o3-2025-04-16",
+  "o3-mini-2025-01-31",
+  "claude-opus-4-6",
 ];
 modelsToDelete.forEach((model) => delete models[model]);
 
